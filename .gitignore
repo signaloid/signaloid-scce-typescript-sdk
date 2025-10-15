@@ -1,0 +1,14 @@
+node_modules
+
+dist
+src/**/*.js
+src/**/*.d.ts
+
+**/*.local
+
+# OS-specific
+**/.DS_Store
+**/.directory
+
+.env
+.env.*

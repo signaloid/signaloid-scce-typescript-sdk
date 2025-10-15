@@ -1,0 +1,103 @@
+{
+  "name": "@signaloid/scce-sdk",
+  "version": "1.0.0",
+  "description": "Signaloid Cloud Compute Engine API SDK",
+  "author": "Signaloid <developer-support@signaloid.com>",
+  "license": "MIT",
+  "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/",
+    "@signaloid:registry": "https://npm.pkg.github.com/"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.ts",
+      "browser": "./dist/browser/index.js",
+      "import": "./dist/node/index.js",
+      "require": "./dist/node/index.cjs"
+    },
+    "./ws-runtime": {
+      "types": "./dist/node/ws.node.d.ts",
+      "node": "./dist/node/ws.node.js",
+      "browser": "./dist/browser/ws.browser.js",
+      "default": "./dist/browser/ws.browser.js"
+    }
+  },
+  "main": "./dist/node/index.cjs",
+  "module": "./dist/node/index.js",
+  "types": "./dist/node/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "signaloid",
+    "cloud",
+    "compute",
+    "api",
+    "sdk",
+    "typescript",
+    "uncertainty",
+    "probabilistic"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/signaloid/signaloid-scce-typescript-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/signaloid/signaloid-scce-typescript-sdk/issues"
+  },
+  "homepage": "https://github.com/signaloid/signaloid-scce-typescript-sdk#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsup",
+    "watch": "tsup --watch",
+    "test": "dotenv -e .env -- jest",
+    "test:integration": "dotenv -e .env -- jest --runInBand",
+    "test:ci": "jest --ci --coverage --watchAll=false --passWithNoTests",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.6"
+  },
+  "dependencies": {
+    "@aws-amplify/auth": "^6.13.3",
+    "aws-amplify": "^6.15.3",
+    "axios": "^1.12.0",
+    "dotenv-cli": "^8.0.0",
+    "jest": "^30.0.4",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts",
+      "!src/**/*.test.ts",
+      "!src/**/*.spec.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "testTimeout": 30000
+  }
+}
