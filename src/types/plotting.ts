@@ -10,30 +10,11 @@ export type PlotResponse = {
   presignedURL: string;
 };
 
-export type PlotValueRequest = {
-  taskID: string;
-  valueID: string;
-};
-
-export type PlotValueResponse = {
-  plotID: string;
-  presignedURL: string;
-};
-
-export type PlotUxRequest = {
-  payload: string;
-};
-
-export type PlotUxResponse = {
-  plotID: string;
-  presignedURL: string;
-};
-
-export type SamplesUxRequest = {
-  payload: string;
-};
-
-export type SamplesUxResponse = {
-  Samples: number[];
-  Count: number;
+export type PlotOptions = {
+  fullResolution?: boolean;
+  xLimMin?: number;
+  xLimMax?: number;
+  yLimMin?: number;
+  yLimMax?: number;
+  xAxisLabel?: string;
 };

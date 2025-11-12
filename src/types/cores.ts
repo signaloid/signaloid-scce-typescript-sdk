@@ -1,4 +1,4 @@
-export type CoreClass = "C0" | "C0Pro" | "C0-microSD" | "C0-microSDPlus";
+export type CoreClass = "C0" | "C0Pro" | "C0-microSD" | "C0-microSD-plus";
 
 export type Microarchitecture =
   | "Zurich"

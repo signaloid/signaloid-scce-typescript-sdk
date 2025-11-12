@@ -108,6 +108,11 @@ export class BuildsManager {
     return response.data;
   }
 
+  /**
+   * @deprecated Use {@link waitForBuild} instead.
+   *
+   * This method is deprecated and will be removed in a future release.
+   */
   public async waitForBuildAndGetOutputs(
     buildID: string,
     options: { timeoutMs?: number; userId?: string } = {},
@@ -211,7 +216,7 @@ export class BuildsManager {
     const timeoutSec = options.timeoutSec ?? 60;
 
     // Subscription establishing can take up to 10sec.
-    //  -> Therefore we will likely miss updates of quick tasks.
+    //  -> Therefore we will likely miss updates of quick builds.
     // Since we can't make any assumptions we start checking in parallel (Promise.race())
     //  - If the channel is established and build is running likely everything will go fine (and fast)
     //  - If the build had finished we need to rely on the old .getStatus() to break out.
@@ -238,8 +243,8 @@ export class BuildsManager {
       buildAlreadyDonePromise,
     ]);
 
-    if (potentialEndState === "string") {
-      // oops, task is finished. Unsubscribe and return
+    if (typeof potentialEndState === "string") {
+      // oops, build is finished. Unsubscribe and return
       let channel = await channelPromise.catch(() => {});
       channel?.close();
       return potentialEndState;
@@ -247,7 +252,7 @@ export class BuildsManager {
 
     // Otherwise either (1) endState is null (still running/error) or (2) the channel finished first
     // Either way we need to immediately install handlers to not lose updates.
-    // We can still check the result of taskAlreadyDonePromise after.
+    // We can still check the result of buildAlreadyDonePromise after.
     let channel = await channelPromise;
 
     return new Promise((resolve, reject) => {

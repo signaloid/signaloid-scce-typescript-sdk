@@ -10,7 +10,10 @@ export type SubscriptionPlan =
   | "DeveloperTier"
   | "AcademicTier"
   | "ProTier"
-  | "EnterpriseTier";
+  | "EnterpriseTier"
+  | "EnterpriseTierL"
+  | "EnterpriseTierM"
+  | "EnterpriseTierS";
 
 export type FreeTrialDetails = {
   TrialStart: number;
