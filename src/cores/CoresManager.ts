@@ -1,11 +1,10 @@
-import { AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import { AuthManager } from "../auth/AuthManager";
+import { AxiosInstance } from "axios";
 import {
   CoreDetails,
-  CoreRequest,
   CorePatchRequest,
-  ListCoresResponse,
+  CoreRequest,
   ListCoresQueryParams,
+  ListCoresResponse,
 } from "../types/cores";
 
 export class CoresManager {
@@ -24,8 +23,23 @@ export class CoresManager {
   }
 
   public async getOne(coreID: string): Promise<CoreDetails> {
-    const response = await this.client.get(`/cores/${coreID}`);
-    return response.data;
+    const req1 = this.client.get(`/cores/${coreID}`);
+    const req2 = this.client.get(`/cores/${coreID}`, {
+      params: { default: true },
+    });
+
+    const results = await Promise.allSettled([req1, req2]);
+    const fulfilled = results.find((r) => r.status === "fulfilled");
+
+    if (fulfilled) {
+      return fulfilled.value.data;
+    }
+
+    const firstError = results.find(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    )?.reason;
+    if (firstError instanceof Error) throw firstError;
+    throw new Error(String(firstError) || "Both core requests failed");
   }
 
   public async create(payload: CoreRequest): Promise<CoreDetails> {

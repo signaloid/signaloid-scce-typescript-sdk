@@ -1,19 +1,20 @@
-import { AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import { AuthManager } from "../auth/AuthManager";
+import { AxiosInstance } from "axios";
 import {
-  RepositoryDetails,
-  RepositoryRequest,
   GetRepositoryBuildsQueryParams,
-  RepositoryPatchRequest,
-  ListRepositoriesResponse,
   ListBuildsByRepositoryResponse,
+  ListRepositoriesResponse,
+  RepositoryDetails,
+  RepositoryPatchRequest,
+  RepositoryRequest,
 } from "../types/repositories";
 
 export class RepositoriesManager {
   constructor(private readonly client: AxiosInstance) {}
 
-  public async list(): Promise<ListRepositoriesResponse> {
-    const response = await this.client.get("/repositories");
+  public async list(startKey?: string): Promise<ListRepositoriesResponse> {
+    const response = await this.client.get("/repositories", {
+      params: startKey ? { startKey } : undefined,
+    });
     return response.data;
   }
 
@@ -38,7 +39,18 @@ export class RepositoriesManager {
     return response.data;
   }
 
+  /**
+   * @deprecated Use {@link disconnect} instead.
+   *
+   * The `delete()` method has been deprecated because it performs a disconnection
+   * from the repository rather than a permanent deletion. Use `disconnect()` instead,
+   * which performs the same action but better describes the intent.
+   */
   public async delete(repositoryID: string): Promise<void> {
+    await this.client.delete(`/repositories/${repositoryID}`);
+  }
+
+  public async disconnect(repositoryID: string): Promise<void> {
     await this.client.delete(`/repositories/${repositoryID}`);
   }
 

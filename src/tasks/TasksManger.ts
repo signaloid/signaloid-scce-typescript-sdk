@@ -130,7 +130,7 @@ export class TasksManager {
       taskAlreadyDonePromise,
     ]);
 
-    if (potentialEndState === "string") {
+    if (typeof potentialEndState === "string") {
       // oops, task is finished. Unsubscribe and return
       let channel = await channelPromise.catch(() => {});
       channel?.close();

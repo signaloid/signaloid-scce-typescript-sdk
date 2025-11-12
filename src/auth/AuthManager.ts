@@ -380,7 +380,7 @@ export class AuthManager {
       if (!idToken) {
         throw new SdkError(
           ERROR_CODES.AUTH_INVALID_TOKEN,
-          "ID token not found",
+          "You're not signed in. Please sign in again.",
         );
       }
 
@@ -389,19 +389,22 @@ export class AuthManager {
       if (exp === undefined) {
         throw new SdkError(
           ERROR_CODES.AUTH_INVALID_TOKEN,
-          "Token missing 'exp' field",
+          "Your session looks invalid. Please sign in again.",
         );
       }
 
       if (exp < Math.floor(Date.now() / 1000)) {
-        throw new SdkError(ERROR_CODES.AUTH_EXPIRED_TOKEN, "Token has expired");
+        throw new SdkError(
+          ERROR_CODES.AUTH_EXPIRED_TOKEN,
+          "Your session has expired. Please sign in again.",
+        );
       }
 
       return idToken;
     } catch (err) {
       throw new SdkError(
         ERROR_CODES.AUTH_FAILED,
-        "Failed to retrieve ID token",
+        "We couldn’t complete authentication. Please sign in again.",
         err,
       );
     }
