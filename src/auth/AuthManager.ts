@@ -90,8 +90,8 @@ export class AuthManager {
 
     return {
       userId: payload["custom:user_id"]!.toString(),
-      email: payload.email!.toString(),
-      name: payload.name!.toString(),
+      email: payload.email ? payload.email.toString() : "",
+      name: payload.name ? payload.name.toString() : "",
     };
   }
 
