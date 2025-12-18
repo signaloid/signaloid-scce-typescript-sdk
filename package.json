@@ -1,6 +1,6 @@
 {
   "name": "@signaloid/scce-sdk",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Signaloid Cloud Compute Engine API SDK",
   "author": "Signaloid <developer-support@signaloid.com>",
   "license": "MIT",
