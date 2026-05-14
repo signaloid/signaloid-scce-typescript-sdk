@@ -1,8 +1,9 @@
-import axios, { AxiosInstance } from "axios";
+import { AxiosInstance } from "axios";
 import {
   CreateTaskResponse,
   ListTasksQueryParams,
   ListTasksResponse,
+  ListTasksSummaryResponse,
   TaskDetail,
   TaskOutputs,
   OutputStream,
@@ -14,21 +15,18 @@ import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
 import { DatasourcesManager } from "../datasources/DatasourcesManager";
 import { UsersManager } from "../users/UsersManager";
+import { idToChannelName } from "../utils/channel";
+import { serializeListParams } from "../utils/listParams";
 
 export class TasksManager {
-  private plainAxios: AxiosInstance;
-
   constructor(
     private readonly client: AxiosInstance,
     private readonly realtime: RealtimeClient,
+    private readonly publicRealtime: RealtimeClient,
     private readonly auth: AuthManager,
     private readonly datasources: DatasourcesManager,
     private readonly users: UsersManager,
-  ) {
-    this.plainAxios = axios.create({
-      timeout: 30000, // 30 seconds for file downloads
-    });
-  }
+  ) {}
 
   public async createTask(
     buildID: string,
@@ -53,24 +51,32 @@ export class TasksManager {
   public async list(
     options?: ListTasksQueryParams,
   ): Promise<ListTasksResponse> {
-    const params: Record<string, string> = {};
-    if (options?.status) {
-      params.status = options.status;
-    }
-    if (options?.startKey) {
-      params.startKey = options.startKey;
-    }
-    if (options?.from) {
-      params.from = options.from;
-    }
-    if (options?.to) {
-      params.to = options.to;
-    }
-
     const response = await this.client.get<ListTasksResponse>("/tasks", {
-      params,
+      params: this.buildListParams(options),
+      paramsSerializer: serializeListParams,
     });
     return response.data;
+  }
+
+  public async listSummary(
+    options?: Omit<ListTasksQueryParams, "noexpand">,
+  ): Promise<ListTasksSummaryResponse> {
+    const response = await this.client.get<ListTasksSummaryResponse>("/tasks", {
+      params: this.buildListParams({ ...options, noexpand: true }),
+      paramsSerializer: serializeListParams,
+    });
+    return response.data;
+  }
+
+  private buildListParams(options?: ListTasksQueryParams): Record<string, any> {
+    const params: Record<string, any> = {};
+    if (options?.status) params.status = options.status;
+    if (options?.startKey) params.startKey = options.startKey;
+    if (options?.from) params.from = options.from;
+    if (options?.to) params.to = options.to;
+    if (options?.limit !== undefined) params.limit = options.limit;
+    if (options?.noexpand) params.noexpand = "true";
+    return params;
   }
 
   public async getOne(taskID: string): Promise<TaskDetail> {
@@ -92,15 +98,30 @@ export class TasksManager {
 
   public async waitForTask(
     taskID: string,
-    options: { timeoutSec?: number; userId?: string } = {},
+    options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},
   ): Promise<string> {
     const isAliveIntervalSec = 10;
     const completeStatus = ["Completed", "Cancelled", "Stopped"];
-    const userId =
-      options.userId ||
-      (await this.auth.getUserId()) ||
-      (await this.users.me()).UserID;
     const timeoutSec = options.timeoutSec ?? 60;
+
+    let isPublic = options.isPublic;
+    if (isPublic === undefined) {
+      try {
+        isPublic = (await this.getOne(taskID)).IsPublic ?? false;
+      } catch (err) {
+        // Only treat 404 as non-public; other errors must propagate so we don't subscribe to the wrong realtime channel.
+        if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
+          isPublic = false;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    const realtime = isPublic ? this.publicRealtime : this.realtime;
+    const channelName = isPublic
+      ? `public-task-status/${idToChannelName(taskID)}`
+      : `task-status/${idToChannelName(options.userId || (await this.auth.getUserId()) || (await this.users.me()).UserID)}`;
 
     // Subscription establishing can take up to 10sec.
     //  -> Therefore we will likely miss updates of quick tasks.
@@ -114,9 +135,7 @@ export class TasksManager {
     // For several reasons updates might not come
     //  -> Therefore every N seconds we must check the state the old way.
 
-    const channelPromise = this.realtime
-      .channel(`task-status/${userId}`)
-      .subscribe();
+    const channelPromise = realtime.channel(channelName).subscribe();
 
     const getTaskDoneStatus = () =>
       this.getStatus(taskID).then(
@@ -214,13 +233,45 @@ export class TasksManager {
     return response.data;
   }
 
-  /// Return the selected output to the user. The backend will serve cached data if available
+  /// Return the selected output to the user. The backend will serve cached data if available.
+  /// Pass `{ skipCache: true }` to force a fresh read from S3, bypassing the DynamoDB output cache.
   public async getOutput(
     taskID: string,
     outStream: OutputStream,
+    options?: { skipCache?: boolean },
   ): Promise<string> {
+    const params: Record<string, string> = {};
+    if (options?.skipCache) {
+      params.skipCache = "true";
+    }
     const response = await this.client.get(
       `/tasks/${taskID}/output/${outStream}`,
+      { params },
+    );
+    return response.data;
+  }
+
+  public async getPublic(taskID: string): Promise<TaskDetail> {
+    const response = await this.client.get<TaskDetail>(
+      `/tasks/${taskID}/public`,
+    );
+    return response.data;
+  }
+
+  public async getPublicOutputURLs(taskID: string): Promise<TaskOutputs> {
+    const response = await this.client.get<TaskOutputs>(
+      `/tasks/${taskID}/outputs/public`,
+    );
+    return response.data;
+  }
+
+  public async createPublicTask(
+    buildID: string,
+    payload: CreateTaskRequest,
+  ): Promise<CreateTaskResponse> {
+    const response = await this.client.post<CreateTaskResponse>(
+      `/builds/${buildID}/tasks/public`,
+      payload,
     );
     return response.data;
   }

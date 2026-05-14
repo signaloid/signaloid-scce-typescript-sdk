@@ -1,32 +1,23 @@
-export type SubscriptionStatus =
-  | "active"
-  | "inactive"
-  | "past_due"
-  | "canceled"
-  | "unpaid";
-
 export type SubscriptionPlan =
   | "FreeTier"
   | "DeveloperTier"
-  | "AcademicTier"
   | "ProTier"
-  | "EnterpriseTier"
-  | "EnterpriseTierL"
+  | "EnterpriseTierS"
   | "EnterpriseTierM"
-  | "EnterpriseTierS";
+  | "EnterpriseTierL"
+  | "NO_TIER";
 
 export type FreeTrialDetails = {
-  TrialStart: number;
-  TrialEnd: number;
+  TrialStart: number | null;
+  TrialEnd: number | null;
 };
 
 export type SubscriptionDetails = {
   Tier: SubscriptionPlan;
-  StartDate: number;
+  StartDate: number | null;
   FreeTrial: FreeTrialDetails;
 };
 
 export type SubscriptionUpdateRequest = {
-  Plan: SubscriptionPlan;
-  PaymentMethodID?: string;
+  Tier: SubscriptionPlan;
 };

@@ -102,6 +102,30 @@ int main() {
     expect(response.Builds).toBeInstanceOf(Array);
     expect(typeof response.Count).toBe("number");
     expect(response.UserID).toBeDefined();
+
+    if (response.Builds.length > 0) {
+      const build = response.Builds[0];
+      if (build.IsPublic !== undefined) {
+        expect(typeof build.IsPublic).toBe("boolean");
+      }
+      if (build.BuildCoreSpecs !== undefined) {
+        expect(build.BuildCoreSpecs).toBeDefined();
+      }
+      if (build.StatusTransitions !== undefined) {
+        expect(build.StatusTransitions).toBeInstanceOf(Array);
+      }
+    }
+  });
+
+  it("lists builds with multi-status filter", async () => {
+    const response = await buildsManager.list({
+      status: ["Completed", "Stopped"],
+    });
+
+    expect(response.Builds).toBeInstanceOf(Array);
+    for (const build of response.Builds) {
+      expect(["Completed", "Stopped"]).toContain(build.Status);
+    }
   });
 
   it("gets build details", async () => {
@@ -118,6 +142,30 @@ int main() {
     expect(build.Status).toBeDefined();
     expect(build.Owner).toBeDefined();
     expect(build.Application).toBeDefined();
+    if (build.IsPublic !== undefined) {
+      expect(typeof build.IsPublic).toBe("boolean");
+    }
+  });
+
+  it("lists builds with summary (noexpand)", async () => {
+    const response = await buildsManager.listSummary({
+      status: ["Completed", "Stopped"],
+      limit: 50,
+    });
+
+    expect(response.Builds).toBeInstanceOf(Array);
+    expect(typeof response.Count).toBe("number");
+    expect(response.UserID).toBeDefined();
+
+    if (response.Builds.length > 0) {
+      const build = response.Builds[0];
+      expect(typeof build.BuildID).toBe("string");
+      expect(typeof build.Owner).toBe("string");
+      expect(typeof build.CreatedAt).toBe("number");
+      // Summary response must NOT include full-detail fields
+      expect((build as any).Status).toBeUndefined();
+      expect((build as any).Application).toBeUndefined();
+    }
   });
 
   it("handles non-existent build", async () => {

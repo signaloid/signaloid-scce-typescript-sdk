@@ -1,9 +1,4 @@
-export type DataSource = {
-  Object: "DataSource";
-  ResourceID: string;
-  ResourceType: "Gateway" | "Bucket" | "SignaloidCloudStorage";
-  Location: string;
-};
+import { DataSource } from ".";
 
 export type DriveDetails = {
   Object: "Drive";

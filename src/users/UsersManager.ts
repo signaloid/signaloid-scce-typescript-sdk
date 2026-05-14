@@ -2,6 +2,7 @@ import { AxiosInstance } from "axios";
 import {
   UserDetails,
   UserPatchRequest,
+  UserPatchRemovableField,
   UserCustomization,
   UserLogsResponse,
   UserLogsQueryParams,
@@ -17,20 +18,25 @@ export class UsersManager {
   }
 
   public async me(): Promise<UserDetails> {
-    const response = await this.client.get(`users/me`);
+    const response = await this.client.get(`/users/me`);
     return response.data;
   }
 
   public async update(
     userID: string,
     payload: UserPatchRequest,
+    options?: { remove?: UserPatchRemovableField[] },
   ): Promise<UserUpdateResponse> {
-    const response = await this.client.patch(`/users/${userID}`, payload);
-    return response.data;
-  }
-
-  public async delete(userID: string): Promise<{ message: string }> {
-    const response = await this.client.delete(`/users/${userID}`);
+    let params: URLSearchParams | undefined;
+    if (options?.remove && options.remove.length > 0) {
+      params = new URLSearchParams();
+      for (const field of options.remove) {
+        params.append("remove", field);
+      }
+    }
+    const response = await this.client.patch(`/users/${userID}`, payload, {
+      params,
+    });
     return response.data;
   }
 
@@ -55,6 +61,11 @@ export class UsersManager {
     }
 
     const response = await this.client.get(`/users/${userID}/logs`, { params });
+    return response.data;
+  }
+
+  public async delete(userID: string): Promise<{ message: string }> {
+    const response = await this.client.delete(`/users/${userID}`);
     return response.data;
   }
 

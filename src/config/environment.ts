@@ -6,6 +6,8 @@ export interface Environment {
   api: string;
   websocket: string;
   host: string;
+  publicWebsocket: string;
+  publicHost: string;
   userPoolId: string;
   userPoolClientId: string;
   region?: string;
@@ -15,9 +17,10 @@ export type EnvName = "production";
 export const ENVIRONMENTS: Record<EnvName, Environment> = {
   production: {
     api: "https://api.signaloid.io",
-    websocket:
-      "wss://spasofsn5fhb7fhkqq33ru5tvq.appsync-realtime-api.eu-west-2.amazonaws.com/event/realtime",
-    host: "spasofsn5fhb7fhkqq33ru5tvq.appsync-api.eu-west-2.amazonaws.com",
+    websocket: "wss://realtime.signaloid.io/event/realtime",
+    host: "realtime.signaloid.io",
+    publicWebsocket: "wss://public.realtime.signaloid.io/event/realtime",
+    publicHost: "public.realtime.signaloid.io",
     userPoolId: "eu-west-2_S05v0KKxN",
     userPoolClientId: "7bt8s3tk9l5itc78efm94f3hqr",
     region: "eu-west-2",
@@ -56,6 +59,10 @@ function readRuntimeEnvVar(key: string): string | undefined {
   return fromGlobal ?? fromImportMeta ?? fromWindow;
 }
 
+function getDefaultEnvName(): EnvName {
+  return BUILT_DEFAULT_BASE_ENV;
+}
+
 // Only include defined values so we don't overwrite with undefined
 function collectEnvOverrides(): Partial<Environment> {
   const o: Partial<Environment> = {};
@@ -65,6 +72,8 @@ function collectEnvOverrides(): Partial<Environment> {
   put("api", readRuntimeEnvVar("API_ENDPOINT"));
   put("websocket", readRuntimeEnvVar("WEBSOCKET_ENDPOINT"));
   put("host", readRuntimeEnvVar("HOST_ENDPOINT"));
+  put("publicWebsocket", readRuntimeEnvVar("PUBLIC_WEBSOCKET_ENDPOINT"));
+  put("publicHost", readRuntimeEnvVar("PUBLIC_HOST_ENDPOINT"));
   put("userPoolId", readRuntimeEnvVar("USER_POOL_ID"));
   put("userPoolClientId", readRuntimeEnvVar("USER_POOL_WEB_CLIENT_ID"));
   put("region", readRuntimeEnvVar("REGION"));
@@ -96,11 +105,11 @@ export function setEnvironment(
   if (typeof nameOrConfig === "string") {
     current = buildEnv(nameOrConfig, overrides);
   } else {
-    current = buildEnv("production", nameOrConfig);
+    current = buildEnv(getDefaultEnvName(), nameOrConfig);
   }
 }
 
 export function getEnvironment(): Environment {
-  if (!current) current = buildEnv("production");
+  if (!current) current = buildEnv(getDefaultEnvName());
   return current;
 }

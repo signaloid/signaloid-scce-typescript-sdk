@@ -1,8 +1,6 @@
-export type ThingFile = {
-  name: string;
-  size: number;
-  lastModified: number;
-  path: string;
+export type ThingFileItem = {
+  File: string;
+  UpdatedAt: number;
 };
 
 export type ThingDetails = {
@@ -12,20 +10,25 @@ export type ThingDetails = {
   CreatedAt: number;
   UpdatedAt: number;
   Name: string;
-  [key: string]: any;
+  ThingStatus?: unknown;
+  Presence?: unknown;
+  Topics?: string[];
+  [key: string]: unknown;
 };
 
 export type ThingPatchRequest = {
-  Name?: string;
-  [key: string]: any;
+  Name: string;
+  [key: string]: unknown;
 };
 
 export type ListThingsResponse = {
-  things: ThingDetails[];
-  count: number;
+  UserID: string;
+  ThingIDs: string[];
+  ThingCount: number;
 };
 
 export type ThingFilesResponse = {
-  files: ThingFile[];
-  count: number;
+  UserID: string;
+  ThingID: string;
+  Items: ThingFileItem[];
 };

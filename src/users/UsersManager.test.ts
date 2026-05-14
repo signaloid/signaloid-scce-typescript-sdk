@@ -21,7 +21,20 @@ describe("UsersManager", () => {
     userId = userIdEnv;
   });
 
-  it("gets user details", async () => {
+  it("gets current user via me()", async () => {
+    const user = await usersManager.me();
+
+    expect(user.Object).toBe("User");
+    expect(user.UserID).toBe(userId);
+    expect(user.Username).toBeDefined();
+    expect(typeof user.CreatedAt).toBe("number");
+    expect(user.Preferences).toBeDefined();
+    expect(typeof user.Preferences.UpdatedAt).toBe("number");
+    expect(user.ResourceUsage).toBeDefined();
+    expect(typeof user.ResourceUsage.APIAccessCount).toBe("number");
+  });
+
+  it("gets user details by ID", async () => {
     const user = await usersManager.getOne(userId);
 
     expect(user.Object).toBe("User");

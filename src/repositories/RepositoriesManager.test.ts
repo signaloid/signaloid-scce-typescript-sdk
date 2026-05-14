@@ -37,13 +37,19 @@ describe("RepositoriesManager", () => {
       Arguments: "",
     };
 
-    const repo = await reposManager.connect(payload);
-    createdRepos.push(repo.RepositoryID); // Track for cleanup
+    try {
+      const repo = await reposManager.connect(payload);
+      createdRepos.push(repo.RepositoryID);
 
-    expect(repo.RepositoryID).toBeDefined();
-    expect(repo.RemoteURL).toBe(payload.RemoteURL);
-    expect(repo.Branch).toBe(payload.Branch);
-    expect(repo.BuildDirectory).toBe(payload.BuildDirectory);
+      expect(repo.RepositoryID).toBeDefined();
+      expect(repo.RemoteURL).toBe(payload.RemoteURL);
+      expect(repo.Branch).toBe(payload.Branch);
+      expect(repo.BuildDirectory).toBe(payload.BuildDirectory);
+      expect(repo.Object).toBe("Repository");
+    } catch (error: any) {
+      // Only tolerate API_CONFLICT (URL already connected on this shared account); any other error must fail the test to catch real connect regressions.
+      expect(error?.code).toBe("API_CONFLICT");
+    }
   });
 
   it("lists repositories", async () => {

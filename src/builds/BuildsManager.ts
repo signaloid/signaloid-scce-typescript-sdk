@@ -5,30 +5,45 @@ import {
   CreateRepositoryBuildRequest,
   CreateRepositoryBuildResponse,
   ListBuildsResponse,
+  ListBuildsSummaryResponse,
   BuildDetails,
   BuildVariablesResponse,
   BuildStatus,
   BuildBinaryResponse,
   BuildOutputs,
+  UpdateBuildRequest,
 } from "../types/builds";
+import { ListBuildTasksResponse } from "../types/tasks";
 import { RealtimeClient } from "../realtime/RealtimeClient";
 import { AuthManager } from "../auth/AuthManager";
 import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
 import { UsersManager } from "../users/UsersManager";
+import { idToChannelName } from "../utils/channel";
+import { serializeListParams } from "../utils/listParams";
 
 export class BuildsManager {
   constructor(
     private readonly client: AxiosInstance,
     private readonly realtime: RealtimeClient,
+    private readonly publicRealtime: RealtimeClient,
     private readonly auth: AuthManager,
     private readonly users: UsersManager,
   ) {}
 
   public async createFromSourceCode(
     payload: CreateSourceBuildRequest,
+    discoverVars?: boolean,
   ): Promise<CreateSourceBuildResponse> {
-    const response = await this.client.post("/sourcecode/builds", payload);
+    const config =
+      discoverVars !== undefined
+        ? { params: { DiscoverVariables: discoverVars } }
+        : undefined;
+    const response = await this.client.post<CreateSourceBuildResponse>(
+      "/sourcecode/builds",
+      payload,
+      config,
+    );
     return response.data;
   }
 
@@ -38,9 +53,10 @@ export class BuildsManager {
     discoverVars?: boolean,
   ): Promise<CreateRepositoryBuildResponse> {
     const url = `/repositories/${repositoryID}/builds`;
-    const config = discoverVars
-      ? { params: { DiscoverVariables: discoverVars } }
-      : undefined;
+    const config =
+      discoverVars !== undefined
+        ? { params: { DiscoverVariables: discoverVars } }
+        : undefined;
 
     const response = await this.client.post<CreateRepositoryBuildResponse>(
       url,
@@ -54,17 +70,52 @@ export class BuildsManager {
     startKey?: string;
     from?: string;
     to?: string;
-    status?: BuildStatus;
+    status?: BuildStatus | BuildStatus[];
+    limit?: number;
   }): Promise<ListBuildsResponse> {
-    const params: Record<string, string> = {};
+    const params: Record<string, any> = {};
     if (options?.startKey) params.startKey = options.startKey;
     if (options?.from) params.from = options.from;
     if (options?.to) params.to = options.to;
     if (options?.status) params.status = options.status;
+    if (options?.limit !== undefined) params.limit = options.limit;
 
     const response = await this.client.get<ListBuildsResponse>("/builds", {
       params,
+      paramsSerializer: serializeListParams,
     });
+    return response.data;
+  }
+
+  /**
+   * List builds in the lightweight "no expand" mode. The backend returns
+   * only `{ BuildID, Owner, CreatedAt }` for each build, allowing a much
+   * larger page size (up to 500 vs 25 for the expanded `list()`).
+   *
+   * Use this when you only need to enumerate builds (e.g. to fan out status
+   * checks) and do not need the full `BuildDetails`.
+   */
+  public async listSummary(options?: {
+    startKey?: string;
+    from?: string;
+    to?: string;
+    status?: BuildStatus | BuildStatus[];
+    limit?: number;
+  }): Promise<ListBuildsSummaryResponse> {
+    const params: Record<string, any> = { noexpand: true };
+    if (options?.startKey) params.startKey = options.startKey;
+    if (options?.from) params.from = options.from;
+    if (options?.to) params.to = options.to;
+    if (options?.status) params.status = options.status;
+    if (options?.limit !== undefined) params.limit = options.limit;
+
+    const response = await this.client.get<ListBuildsSummaryResponse>(
+      "/builds",
+      {
+        params,
+        paramsSerializer: serializeListParams,
+      },
+    );
     return response.data;
   }
 
@@ -73,8 +124,15 @@ export class BuildsManager {
     return response.data;
   }
 
-  public async getStatus(buildID: string): Promise<string> {
-    return (await this.getOne(buildID)).Status;
+  public async updateOne(
+    buildID: string,
+    payload: UpdateBuildRequest,
+  ): Promise<BuildDetails> {
+    const response = await this.client.patch<BuildDetails>(
+      `/builds/${buildID}`,
+      payload,
+    );
+    return response.data;
   }
 
   public async deleteOne(buildID: string): Promise<void> {
@@ -83,6 +141,10 @@ export class BuildsManager {
 
   public async cancel(buildID: string): Promise<void> {
     await this.client.post(`/builds/${buildID}/cancel`);
+  }
+
+  public async getStatus(buildID: string): Promise<string> {
+    return (await this.getOne(buildID)).Status;
   }
 
   public async getVariables(
@@ -98,8 +160,26 @@ export class BuildsManager {
     return response.data;
   }
 
+  public async listTasks(
+    buildID: string,
+    options?: { startKey?: string; from?: string; to?: string },
+  ): Promise<ListBuildTasksResponse> {
+    const params: Record<string, string> = {};
+    if (options?.startKey) params.startKey = options.startKey;
+    if (options?.from) params.from = options.from;
+    if (options?.to) params.to = options.to;
+
+    const response = await this.client.get<ListBuildTasksResponse>(
+      `/builds/${buildID}/tasks`,
+      { params },
+    );
+    return response.data;
+  }
+
   public async getOutputs(buildID: string): Promise<BuildOutputs> {
-    const response = await this.client.get(`/builds/${buildID}/outputs`);
+    const response = await this.client.get<BuildOutputs>(
+      `/builds/${buildID}/outputs`,
+    );
     return response.data;
   }
 
@@ -205,15 +285,30 @@ export class BuildsManager {
 
   public async waitForBuild(
     buildID: string,
-    options: { timeoutSec?: number; userId?: string } = {},
+    options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},
   ): Promise<string> {
     const isAliveIntervalSec = 10;
     const completeStatus = ["Completed", "Cancelled", "Stopped"];
-    const userId =
-      options.userId ||
-      (await this.auth.getUserId()) ||
-      (await this.users.me()).UserID;
     const timeoutSec = options.timeoutSec ?? 60;
+
+    let isPublic = options.isPublic;
+    if (isPublic === undefined) {
+      try {
+        isPublic = (await this.getOne(buildID)).IsPublic ?? false;
+      } catch (err) {
+        // Only treat 404 as non-public; other errors must propagate so we don't subscribe to the wrong realtime channel.
+        if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
+          isPublic = false;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    const realtime = isPublic ? this.publicRealtime : this.realtime;
+    const channelName = isPublic
+      ? `public-build-status/${idToChannelName(buildID)}`
+      : `build-status/${idToChannelName(options.userId || (await this.auth.getUserId()) || (await this.users.me()).UserID)}`;
 
     // Subscription establishing can take up to 10sec.
     //  -> Therefore we will likely miss updates of quick builds.
@@ -227,9 +322,7 @@ export class BuildsManager {
     // For several reasons updates might not come
     //  -> Therefore every N seconds we must check the state the old way.
 
-    const channelPromise = this.realtime
-      .channel(`build-status/${userId}`)
-      .subscribe();
+    const channelPromise = realtime.channel(channelName).subscribe();
 
     const getBuildDoneStatus = () =>
       this.getStatus(buildID).then(

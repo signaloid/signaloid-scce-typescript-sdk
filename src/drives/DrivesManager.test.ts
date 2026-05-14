@@ -1,6 +1,7 @@
 import { createClient } from "../client/createClient";
 import { DrivesManager } from "./DrivesManager";
-import { DriveRequest, DataSource } from "../types/drives";
+import { DriveRequest } from "../types/drives";
+import { DataSource } from "../types";
 
 describe("DrivesManager", () => {
   let drivesManager: DrivesManager;

@@ -1,8 +1,8 @@
 export type CoreClass = "C0" | "C0Pro" | "C0-microSD" | "C0-microSD-plus";
 
 export type Microarchitecture =
-  | "Zurich"
   | "Athens"
+  | "Atlas"
   | "Bypass"
   | "Reference"
   | "Jupiter";
@@ -43,6 +43,7 @@ export type CorePatchRequest = {
 
 export type ListCoresQueryParams = {
   default?: boolean;
+  startKey?: string;
 };
 
 export type ListCoresResponse = {

@@ -6,13 +6,14 @@ export type RepositoryRequest = {
   Commit: string;
   Branch: string;
   BuildDirectory: string;
-  Arguments: string;
+  Arguments?: string;
   Core?: string;
   DataSources?: DataSource[];
   TraceVariables?: TraceVariable[];
 };
 
 export type RepositoryPatchRequest = {
+  RemoteURL?: string;
   Commit?: string;
   Branch?: string;
   BuildDirectory?: string;
@@ -22,15 +23,7 @@ export type RepositoryPatchRequest = {
   TraceVariables?: TraceVariable[];
 };
 
-export type RepositoryBuildRequest = {
-  CommitID?: string;
-  Branch?: string;
-  Compiler?: string;
-  CompilationFlags?: string[];
-  EnvironmentVariables?: Record<string, string>;
-  InputArguments?: string[];
-  BuildType?: string;
-};
+export type RepositoryPatchRemovableField = keyof RepositoryPatchRequest;
 
 export type Override = {
   Variable: string;
@@ -77,4 +70,13 @@ export type ListBuildsByRepositoryResponse = {
   Builds: BuildDetails[];
   Count: number;
   ContinuationKey?: string;
+};
+
+export type LookupRepositoryRequest = {
+  RemoteURL: string;
+  Branch: string;
+};
+
+export type LookupRepositoryResponse = {
+  RepositoryID: string;
 };

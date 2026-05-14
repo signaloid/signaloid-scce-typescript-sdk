@@ -9,6 +9,8 @@ export type OverrideEndpoints = {
   api?: string;
   websocket?: string;
   host?: string;
+  publicWebsocket?: string;
+  publicHost?: string;
 };
 
 export type ClientOptions = {
@@ -22,9 +24,14 @@ export type TraceVariable = {
   Expression: string;
 };
 
-export type ResourceType = "Gateway" | "Bucket" | "SignaloidCloudStorage";
+export type ResourceType =
+  | "Gateway"
+  | "Bucket"
+  | "Drive"
+  | "SignaloidCloudStorage";
 
 export type DataSource = {
+  Object: "DataSource";
   ResourceID: string;
   ResourceType: ResourceType;
   Location: string;
@@ -45,4 +52,5 @@ export type * from "./things";
 export type * from "./users";
 export type * from "./subscriptions";
 export type * from "./github";
+export type * from "./organizations";
 export type * from "./plotting";

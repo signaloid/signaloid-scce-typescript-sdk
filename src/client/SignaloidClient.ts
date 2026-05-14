@@ -6,7 +6,7 @@ import { BuildsManager } from "../builds/BuildsManager";
 import axios from "axios";
 import { RepositoriesManager } from "../repositories/RepositoryManager";
 import { SdkError } from "../errors/SdkError";
-import { TasksManager } from "../tasks/TasksManger";
+import { TasksManager } from "../tasks/TasksManager";
 import { ERROR_CODES } from "../errors/codes";
 import { CoresManager } from "../cores/CoresManager";
 import { BucketsManager } from "../buckets/BucketsManager";
@@ -21,11 +21,13 @@ import { SubscriptionsManager } from "../subscriptions/SubscriptionsManager";
 import { GitHubManager } from "../github/GitHubManager";
 import { HealthManager } from "../health/HealthManager";
 import { WebhooksManager } from "../webhooks/WebhooksManager";
+import { OrganizationsManager } from "../organizations/OrganizationsManager";
 import { DatasourcesManager } from "../datasources/DatasourcesManager";
 
 export class SignaloidClient {
   public auth: AuthManager;
   public realtime: RealtimeClient;
+  public publicRealtime: RealtimeClient;
   public builds: BuildsManager;
   public repositories: RepositoriesManager;
   public tasks: TasksManager;
@@ -42,6 +44,7 @@ export class SignaloidClient {
   public github: GitHubManager;
   public health: HealthManager;
   public webhooks: WebhooksManager;
+  public organizations: OrganizationsManager;
   public datasources: DatasourcesManager;
 
   constructor(
@@ -163,9 +166,15 @@ export class SignaloidClient {
       endpoints.websocket,
       endpoints.host,
     );
+    this.publicRealtime = new RealtimeClient(
+      this.auth,
+      endpoints.publicWebsocket,
+      endpoints.publicHost,
+    );
     this.builds = new BuildsManager(
       signaloidApiClient,
       this.realtime,
+      this.publicRealtime,
       this.auth,
       this.users,
     );
@@ -182,10 +191,12 @@ export class SignaloidClient {
     this.github = new GitHubManager(signaloidApiClient);
     this.health = new HealthManager(signaloidApiClient);
     this.webhooks = new WebhooksManager(signaloidApiClient);
+    this.organizations = new OrganizationsManager(signaloidApiClient);
     this.datasources = new DatasourcesManager(this.auth, this.users);
     this.tasks = new TasksManager(
       signaloidApiClient,
       this.realtime,
+      this.publicRealtime,
       this.auth,
       this.datasources,
       this.users,

@@ -1,5 +1,9 @@
 import { AxiosInstance } from "axios";
-import { GitHubIntegration, GitHubIntegrationRequest } from "../types/github";
+import {
+  GitHubIntegration,
+  GitHubIntegrationRequest,
+  GitHubIntegrationCreateResponse,
+} from "../types/github";
 
 export class GitHubManager {
   constructor(private readonly client: AxiosInstance) {}
@@ -14,19 +18,19 @@ export class GitHubManager {
   public async createOrUpdateIntegration(
     userID: string,
     payload: GitHubIntegrationRequest,
-  ): Promise<GitHubIntegration> {
-    const response = await this.client.put(
+  ): Promise<GitHubIntegrationCreateResponse> {
+    const response = await this.client.put<{ message: string }>(
       `/users/${userID}/integrations/github`,
       payload,
     );
-    return response.data;
+    return { Message: response.data.message };
   }
 
-  public async deleteIntegration(userID: string): Promise<{ message: string }> {
-    const response = await this.client.delete(
+  public async deleteIntegration(userID: string): Promise<{ Message: string }> {
+    const response = await this.client.delete<{ message: string }>(
       `/users/${userID}/integrations/github`,
     );
-    return response.data;
+    return { Message: response.data.message };
   }
 
   public async proxyRequest(

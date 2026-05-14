@@ -1,11 +1,13 @@
 export type KeyDetails = {
   Object: "Key";
-  Key: string;
+  Key?: string;
   KeyID: string;
   Name: string;
   Owner: string;
   CreatedAt: number;
   ValidUntil: number;
+  OrganizationID?: string;
+  DedicatedInstanceName?: string;
 };
 
 export type KeyRequest = {
