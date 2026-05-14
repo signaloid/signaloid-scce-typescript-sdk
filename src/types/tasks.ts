@@ -19,13 +19,13 @@ export type CreateTaskResponse = {
 export type TaskStatusTransition = {
   Status: TaskStatus;
   Timestamp: number;
-  Message: string;
+  Message?: string;
 };
 
 export type TaskDataSource = {
   Location?: string;
   ResourceID: string;
-  ResourceType: string;
+  ResourceType: "Gateway" | "Bucket" | "Drive" | "SignaloidCloudStorage";
 };
 
 export type TaskStats = {
@@ -46,14 +46,17 @@ export type TaskDetail = {
   UpdatedAt: number;
   CreatedAt: number;
   FinishedAt: number;
-  Stats: TaskStats;
+  IsPublic?: boolean;
+  Stats?: TaskStats;
 };
 
 export type ListTasksQueryParams = {
-  status?: TaskStatus;
+  status?: TaskStatus | TaskStatus[];
   startKey?: string;
   from?: string;
   to?: string;
+  limit?: number;
+  noexpand?: boolean;
 };
 
 export type ListTasksResponse = {
@@ -63,10 +66,30 @@ export type ListTasksResponse = {
   Tasks: TaskDetail[];
 };
 
+export type TaskSummary = {
+  TaskID: string;
+  Owner: string;
+  CreatedAt: number;
+};
+
+export type ListTasksSummaryResponse = {
+  UserID: string;
+  Count: number;
+  ContinuationKey?: string;
+  Tasks: TaskSummary[];
+};
+
+export type ListBuildTasksResponse = {
+  BuildID: string;
+  Tasks: TaskDetail[];
+  Count: number;
+  ContinuationKey?: string;
+};
+
 export type TaskOutputs = {
   Stdout: string;
   Stderr: string;
-  StdoutChunks: string[];
+  StdoutChunks?: string[];
 };
 
 export enum OutputStream {

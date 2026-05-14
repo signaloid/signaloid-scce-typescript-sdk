@@ -6,4 +6,6 @@ export const DEFAULT_ENDPOINTS = {
   api: env.api,
   websocket: env.websocket,
   host: env.host,
+  publicWebsocket: env.publicWebsocket,
+  publicHost: env.publicHost,
 };

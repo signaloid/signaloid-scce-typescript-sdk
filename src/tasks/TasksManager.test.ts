@@ -1,7 +1,7 @@
 import { BuildsManager } from "../builds/BuildsManager";
 import { createClient } from "../client/createClient";
 import { SignaloidClient } from "../client/SignaloidClient";
-import { TasksManager } from "../tasks/TasksManger";
+import { TasksManager } from "../tasks/TasksManager";
 import { OutputStream } from "../types/tasks";
 
 describe("TasksManager", () => {
@@ -55,6 +55,27 @@ describe("TasksManager", () => {
     });
   });
 
+  it("lists tasks with summary (noexpand) and multi-status filter", async () => {
+    const response = await tasksManager.listSummary({
+      status: ["Completed", "Stopped"],
+      limit: 50,
+    });
+
+    expect(response.Tasks).toBeInstanceOf(Array);
+    expect(typeof response.Count).toBe("number");
+    expect(response.UserID).toBeDefined();
+
+    if (response.Tasks.length > 0) {
+      const task = response.Tasks[0];
+      expect(typeof task.TaskID).toBe("string");
+      expect(typeof task.Owner).toBe("string");
+      expect(typeof task.CreatedAt).toBe("number");
+      // Summary response must NOT include full-detail fields
+      expect((task as any).Status).toBeUndefined();
+      expect((task as any).BuildID).toBeUndefined();
+    }
+  });
+
   it("gets task details", async () => {
     const tasks = await tasksManager.list();
     if (tasks.Tasks.length === 0) {
@@ -86,9 +107,9 @@ describe("TasksManager", () => {
   });
 
   it("Launch a task and wait for completion", async () => {
-    const builds = await buildsManager.list();
+    const builds = await buildsManager.list({ status: "Completed" });
     if (builds.Builds.length === 0) {
-      console.warn("No builds available for testing");
+      console.warn("No completed builds available for testing");
       return;
     }
 
@@ -109,9 +130,9 @@ describe("TasksManager", () => {
   }, 150000);
 
   it("Launch two tasks in parallel and wait for completion", async () => {
-    const builds = await buildsManager.list();
+    const builds = await buildsManager.list({ status: "Completed" });
     if (builds.Builds.length === 0) {
-      console.warn("No builds available for testing");
+      console.warn("No completed builds available for testing");
       return;
     }
 

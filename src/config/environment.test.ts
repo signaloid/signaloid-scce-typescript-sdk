@@ -14,13 +14,27 @@ describe("environment resolution", () => {
     process.env = OLD_ENV;
   });
 
+  test("defaults to production when no env is set", () => {
+    delete process.env.NODE_ENV;
+    setEnvironment({}); // rebuild current with detect
+    const env = getEnvironment();
+    expect(env).toBeTruthy();
+    expect(env.userPoolId).toBe("eu-west-2_S05v0KKxN");
+  });
+
   test("uses production when SIGNALOID_ENV=production", () => {
     process.env.SIGNALOID_ENV = "production";
     setEnvironment({}); // rebuild current with detect
     const env = getEnvironment();
     expect(env).toBeTruthy();
-    // assert any prod-specific difference if you have one
     expect(env.region).toBe("eu-west-2");
+  });
+
+  test("applies overrides from process.env", () => {
+    process.env.API_ENDPOINT = "https://override.example.com";
+    setEnvironment("production");
+    const env = getEnvironment();
+    expect(env.api).toBe("https://override.example.com");
   });
 
   test("applies programmatic overrides", () => {

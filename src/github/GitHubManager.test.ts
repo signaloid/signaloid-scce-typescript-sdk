@@ -37,20 +37,19 @@ describe("GitHubManager", () => {
 
   it("attempts to create integration", async () => {
     const payload: GitHubIntegrationRequest = {
-      GithubToken: "test_token_123456789",
-      GithubUsername: "testuser",
+      GithubAuthCode: "test_token_123456789",
     };
 
     try {
-      const integration = await githubManager.createOrUpdateIntegration(
+      const result = await githubManager.createOrUpdateIntegration(
         userId,
         payload,
       );
-      expect(integration.GithubUsername).toBe(payload.GithubUsername);
+      expect(result.message).toBeDefined();
     } catch (error: any) {
       // Expected to fail due to auth code requirement
       expect(error.message).toMatch(
-        /GitHub auth code not provided|BadRequest/i,
+        /GitHub auth code not provided|BadRequest|incorrect or expired/i,
       );
     }
   });

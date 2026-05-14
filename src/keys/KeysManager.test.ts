@@ -59,12 +59,33 @@ describe("KeysManager", () => {
   });
 
   describe("list", () => {
-    it("returns keys list", async () => {
+    it("returns keys list with correct shape", async () => {
       const response = await keysManager.list();
 
       expect(response.Keys).toBeInstanceOf(Array);
       expect(typeof response.Count).toBe("number");
       expect(response.UserID).toBeDefined();
+
+      if (response.Keys.length > 0) {
+        const key = response.Keys[0];
+        expect(key.Object).toBe("Key");
+        expect(key.KeyID).toBeDefined();
+        expect(key.Name).toBeDefined();
+        expect(key.Owner).toBeDefined();
+        expect(typeof key.CreatedAt).toBe("number");
+        expect(
+          key.ValidUntil === null || typeof key.ValidUntil === "number",
+        ).toBe(true);
+        // Key secret should NOT be in list response
+        expect(key.Key).toBeUndefined();
+        // OrganizationID and DedicatedInstanceName are optional per OpenAPI
+        if (key.OrganizationID !== undefined) {
+          expect(typeof key.OrganizationID).toBe("string");
+        }
+        if (key.DedicatedInstanceName !== undefined) {
+          expect(typeof key.DedicatedInstanceName).toBe("string");
+        }
+      }
     });
   });
 

@@ -16,6 +16,8 @@ export type CreateSourceBuildRequest = {
   TraceVariables?: TraceVariable[];
   DataSources?: DataSource[];
   Arguments?: string;
+  IsPublic?: boolean;
+  ConfigMk?: string;
 };
 
 export type CreateSourceBuildResponse = {
@@ -27,6 +29,7 @@ export type CreateRepositoryBuildRequest = {
   TraceVariables?: TraceVariable[];
   DataSources?: DataSource[];
   Arguments?: string;
+  IsPublic?: boolean;
 };
 
 export type CreateRepositoryBuildResponse = {
@@ -40,10 +43,23 @@ export type ListBuildsResponse = {
   ContinuationKey?: string;
 };
 
+export type BuildSummary = {
+  BuildID: string;
+  Owner: string;
+  CreatedAt: number;
+};
+
+export type ListBuildsSummaryResponse = {
+  UserID: string;
+  Builds: BuildSummary[];
+  Count: number;
+  ContinuationKey?: string;
+};
+
 export type BuildStatusTransition = {
   Status: BuildStatus;
   Timestamp: number;
-  Message: string;
+  Message?: string;
 };
 
 export type RepositoryApplication = {
@@ -66,6 +82,7 @@ export type SourceCodeApplication = {
   Code: string;
   Language: string;
   Arguments: string;
+  ConfigMk?: string;
 };
 
 export type Application = {
@@ -103,6 +120,7 @@ export type BuildDetails = {
   BuildArtifactAvailable?: boolean;
   BuildCoreSpecs?: BuildCoreSpecs;
   TraceVariables?: TraceVariable[];
+  IsPublic?: boolean;
   Stats?: BuildStats;
 };
 
@@ -128,4 +146,8 @@ export type BuildBinaryResponse = {
 
 export type BuildOutputs = {
   Build: string;
+};
+
+export type UpdateBuildRequest = {
+  IsPublic?: boolean;
 };

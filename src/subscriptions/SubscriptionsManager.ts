@@ -8,14 +8,24 @@ export class SubscriptionsManager {
   constructor(private readonly client: AxiosInstance) {}
 
   public async get(): Promise<SubscriptionDetails> {
-    const response = await this.client.get("/subscriptions");
-    return response.data;
+    const response = await this.client.get<{
+      subscription: SubscriptionDetails;
+    }>("/subscriptions");
+    return response.data.subscription;
   }
 
   public async update(
     payload: SubscriptionUpdateRequest,
-  ): Promise<{ message: string }> {
-    const response = await this.client.put("/subscriptions", payload);
+    options?: { freeTrialOption?: boolean },
+  ): Promise<{ subscription: SubscriptionDetails }> {
+    const response = await this.client.put<{
+      subscription: SubscriptionDetails;
+    }>("/subscriptions", payload, {
+      params:
+        options?.freeTrialOption !== undefined
+          ? { freeTrialOption: options.freeTrialOption }
+          : undefined,
+    });
     return response.data;
   }
 }

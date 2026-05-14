@@ -1,8 +1,12 @@
 import { AxiosInstance } from "axios";
+import { ERROR_CODES } from "../errors/codes";
+import { SdkError } from "../errors/SdkError";
 import {
   GetRepositoryBuildsQueryParams,
   ListBuildsByRepositoryResponse,
   ListRepositoriesResponse,
+  LookupRepositoryRequest,
+  LookupRepositoryResponse,
   RepositoryDetails,
   RepositoryPatchRequest,
   RepositoryRequest,
@@ -23,6 +27,28 @@ export class RepositoriesManager {
     return response.data;
   }
 
+  public async lookup(
+    request: LookupRepositoryRequest,
+  ): Promise<LookupRepositoryResponse | null> {
+    try {
+      const response = await this.client.get("/repositories/lookup", {
+        params: {
+          remoteURL: request.RemoteURL,
+          branch: request.Branch,
+        },
+      });
+      return response.data as LookupRepositoryResponse;
+    } catch (error) {
+      if (
+        error instanceof SdkError &&
+        error.code === ERROR_CODES.API_NOT_FOUND
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   public async connect(payload: RepositoryRequest): Promise<RepositoryDetails> {
     const response = await this.client.post("/repositories", payload);
     return response.data;
@@ -31,10 +57,21 @@ export class RepositoriesManager {
   public async update(
     repositoryID: string,
     payload: RepositoryPatchRequest,
+    options?: { remove?: string[] },
   ): Promise<RepositoryDetails> {
+    let params: URLSearchParams | undefined;
+    if (options?.remove && options.remove.length > 0) {
+      params = new URLSearchParams();
+      for (const field of options.remove) {
+        params.append("remove", field);
+      }
+    }
     const response = await this.client.patch(
       `/repositories/${repositoryID}`,
       payload,
+      {
+        params,
+      },
     );
     return response.data;
   }

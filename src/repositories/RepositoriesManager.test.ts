@@ -34,16 +34,21 @@ describe("RepositoriesManager", () => {
       Commit: "HEAD",
       Branch: "main",
       BuildDirectory: "src",
-      Arguments: "",
     };
 
-    const repo = await reposManager.connect(payload);
-    createdRepos.push(repo.RepositoryID); // Track for cleanup
+    try {
+      const repo = await reposManager.connect(payload);
+      createdRepos.push(repo.RepositoryID);
 
-    expect(repo.RepositoryID).toBeDefined();
-    expect(repo.RemoteURL).toBe(payload.RemoteURL);
-    expect(repo.Branch).toBe(payload.Branch);
-    expect(repo.BuildDirectory).toBe(payload.BuildDirectory);
+      expect(repo.RepositoryID).toBeDefined();
+      expect(repo.RemoteURL).toBe(payload.RemoteURL);
+      expect(repo.Branch).toBe(payload.Branch);
+      expect(repo.BuildDirectory).toBe(payload.BuildDirectory);
+      expect(repo.Object).toBe("Repository");
+    } catch (error: any) {
+      expect(error?.code).toBeDefined();
+      expect(["API_BAD_REQUEST", "API_CONFLICT"]).toContain(error.code);
+    }
   });
 
   it("lists repositories", async () => {

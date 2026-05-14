@@ -9,7 +9,6 @@ export type BucketDetails = {
   MountPath: string;
   Read: boolean;
   Write: boolean;
-  Region?: string;
 };
 
 export type BucketRequest = {
@@ -18,14 +17,12 @@ export type BucketRequest = {
   MountPath?: string;
   Read?: boolean;
   Write?: boolean;
-  Region?: string;
 };
 
 export type BucketPatchRequest = {
   Name?: string;
   Read?: boolean;
   Write?: boolean;
-  Region?: string;
   Account?: string;
   MountPath?: string;
 };

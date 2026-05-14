@@ -1,7 +1,7 @@
 import { BuildStats, BuildStatus } from "./builds";
 import { TaskStatus } from "./tasks";
 
-export type ServiceHealthStatus = "healthy" | "unhealthy" | "unknown";
+export type ServiceHealthStatus = "healthy" | "unhealthy" | "degraded";
 
 export type HealthEndpointStatus = {
   status: number;

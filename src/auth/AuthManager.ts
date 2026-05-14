@@ -289,8 +289,9 @@ export class AuthManager {
     }
   }
 
-  public async getWebSocketHeader(): Promise<string> {
-    const host = DEFAULT_ENDPOINTS.host;
+  public async getWebSocketHeader(
+    host: string = DEFAULT_ENDPOINTS.host,
+  ): Promise<string> {
     const authorization = await this.getAuthorizationHeader();
     const header = {
       host,
@@ -299,8 +300,8 @@ export class AuthManager {
     return `header-${encodeBase64URL(JSON.stringify(header))}`;
   }
 
-  public async getWebSocketProtocols(): Promise<string[]> {
-    return [await this.getWebSocketHeader(), "aws-appsync-event-ws"];
+  public async getWebSocketProtocols(host?: string): Promise<string[]> {
+    return [await this.getWebSocketHeader(host), "aws-appsync-event-ws"];
   }
 
   private async getAccessToken(): Promise<string> {

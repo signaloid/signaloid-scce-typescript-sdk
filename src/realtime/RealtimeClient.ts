@@ -170,7 +170,7 @@ export class RealtimeClient {
   private async _connect(): Promise<WSLike> {
     const timeoutSec = 30;
     const reconnectDelayMs = 1000;
-    const protocols = await this.auth.getWebSocketProtocols();
+    const protocols = await this.auth.getWebSocketProtocols(this.host);
 
     const ws: WSLike = new (WSClass as any)(this.endpoint, protocols as any);
 

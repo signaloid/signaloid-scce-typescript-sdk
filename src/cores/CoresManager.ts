@@ -17,6 +17,9 @@ export class CoresManager {
     if (options?.default !== undefined) {
       params.default = options.default.toString();
     }
+    if (options?.startKey !== undefined) {
+      params.startKey = options.startKey;
+    }
 
     const response = await this.client.get("/cores", { params });
     return response.data;

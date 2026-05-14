@@ -48,6 +48,7 @@ export type UserDetails = {
 
 export type UserPatchRequestPreferences = {
   Editor_Execution_Arguments?: string;
+  Editor_Execution_CodeLanguage?: string;
   Editor_Execution_Core?: string;
   Editor_Execution_DataSources?: string;
   Editor_Layout?: string;
@@ -61,15 +62,13 @@ export type UserPatchRequestPreferences = {
 };
 
 export type UserPatchRequest = {
-  Username?: string;
-  Email?: string;
-  Preferences?: UserPatchRequestPreferences;
-  [key: string]: any;
+  Preferences: UserPatchRequestPreferences;
 };
 
 export type UserUpdateResponsePreferences = {
   UpdatedAt: number;
   Editor_Execution_Arguments?: string;
+  Editor_Execution_CodeLanguage?: string;
   Editor_Execution_Core?: string;
   Editor_Execution_DataSources?: string;
   Editor_Layout?: string;
