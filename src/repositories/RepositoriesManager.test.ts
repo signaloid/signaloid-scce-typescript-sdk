@@ -34,6 +34,7 @@ describe("RepositoriesManager", () => {
       Commit: "HEAD",
       Branch: "main",
       BuildDirectory: "src",
+      Arguments: "",
     };
 
     try {
@@ -46,8 +47,8 @@ describe("RepositoriesManager", () => {
       expect(repo.BuildDirectory).toBe(payload.BuildDirectory);
       expect(repo.Object).toBe("Repository");
     } catch (error: any) {
-      expect(error?.code).toBeDefined();
-      expect(["API_BAD_REQUEST", "API_CONFLICT"]).toContain(error.code);
+      // Only tolerate API_CONFLICT (URL already connected on this shared account); any other error must fail the test to catch real connect regressions.
+      expect(error?.code).toBe("API_CONFLICT");
     }
   });
 

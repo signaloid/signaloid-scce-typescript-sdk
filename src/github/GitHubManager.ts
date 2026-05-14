@@ -19,18 +19,18 @@ export class GitHubManager {
     userID: string,
     payload: GitHubIntegrationRequest,
   ): Promise<GitHubIntegrationCreateResponse> {
-    const response = await this.client.put<GitHubIntegrationCreateResponse>(
+    const response = await this.client.put<{ message: string }>(
       `/users/${userID}/integrations/github`,
       payload,
     );
-    return response.data;
+    return { Message: response.data.message };
   }
 
-  public async deleteIntegration(userID: string): Promise<{ message: string }> {
-    const response = await this.client.delete(
+  public async deleteIntegration(userID: string): Promise<{ Message: string }> {
+    const response = await this.client.delete<{ message: string }>(
       `/users/${userID}/integrations/github`,
     );
-    return response.data;
+    return { Message: response.data.message };
   }
 
   public async proxyRequest(

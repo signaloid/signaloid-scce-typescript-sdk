@@ -20,6 +20,7 @@ import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
 import { UsersManager } from "../users/UsersManager";
 import { idToChannelName } from "../utils/channel";
+import { serializeListParams } from "../utils/listParams";
 
 export class BuildsManager {
   constructor(
@@ -81,17 +82,7 @@ export class BuildsManager {
 
     const response = await this.client.get<ListBuildsResponse>("/builds", {
       params,
-      paramsSerializer: (p) => {
-        const searchParams = new URLSearchParams();
-        for (const [key, value] of Object.entries(p)) {
-          if (Array.isArray(value)) {
-            for (const v of value) searchParams.append(key, v);
-          } else if (value !== undefined) {
-            searchParams.append(key, String(value));
-          }
-        }
-        return searchParams.toString();
-      },
+      paramsSerializer: serializeListParams,
     });
     return response.data;
   }
@@ -122,17 +113,7 @@ export class BuildsManager {
       "/builds",
       {
         params,
-        paramsSerializer: (p) => {
-          const searchParams = new URLSearchParams();
-          for (const [key, value] of Object.entries(p)) {
-            if (Array.isArray(value)) {
-              for (const v of value) searchParams.append(key, v);
-            } else if (value !== undefined) {
-              searchParams.append(key, String(value));
-            }
-          }
-          return searchParams.toString();
-        },
+        paramsSerializer: serializeListParams,
       },
     );
     return response.data;
@@ -314,8 +295,13 @@ export class BuildsManager {
     if (isPublic === undefined) {
       try {
         isPublic = (await this.getOne(buildID)).IsPublic ?? false;
-      } catch {
-        isPublic = false;
+      } catch (err) {
+        // Only treat 404 as non-public; other errors must propagate so we don't subscribe to the wrong realtime channel.
+        if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
+          isPublic = false;
+        } else {
+          throw err;
+        }
       }
     }
 

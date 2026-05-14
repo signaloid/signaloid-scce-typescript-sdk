@@ -23,6 +23,8 @@ export type RepositoryPatchRequest = {
   TraceVariables?: TraceVariable[];
 };
 
+export type RepositoryPatchRemovableField = keyof RepositoryPatchRequest;
+
 export type Override = {
   Variable: string;
   Value: string;

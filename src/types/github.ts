@@ -7,5 +7,5 @@ export type GitHubIntegrationRequest = {
 };
 
 export type GitHubIntegrationCreateResponse = {
-  message: string;
+  Message: string;
 };

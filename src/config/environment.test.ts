@@ -22,9 +22,8 @@ describe("environment resolution", () => {
     expect(env.userPoolId).toBe("eu-west-2_S05v0KKxN");
   });
 
-  test("uses production when SIGNALOID_ENV=production", () => {
-    process.env.SIGNALOID_ENV = "production";
-    setEnvironment({}); // rebuild current with detect
+  test("uses production by default", () => {
+    setEnvironment({}); // rebuild current with default
     const env = getEnvironment();
     expect(env).toBeTruthy();
     expect(env.region).toBe("eu-west-2");

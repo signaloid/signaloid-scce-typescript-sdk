@@ -33,10 +33,31 @@ describe("FilesManager", () => {
     });
 
     it("supports pagination via nextContinuationToken", async () => {
-      const response = await filesManager.list({ path: "/" });
-      // nextContinuationToken may or may not be present
-      if (response.nextContinuationToken) {
-        expect(typeof response.nextContinuationToken).toBe("string");
+      const PREFIX = "pagination/";
+      const SEED_COUNT = 5;
+      for (let i = 0; i < SEED_COUNT; i++) {
+        await filesManager.upload(`${PREFIX}page-${i}.txt`, `content-${i}`);
+      }
+
+      const firstPage = await filesManager.list({ path: `/${PREFIX}` });
+      expect(firstPage.items?.length).toBeGreaterThan(0);
+
+      if (!firstPage.nextContinuationToken) {
+        return;
+      }
+
+      expect(typeof firstPage.nextContinuationToken).toBe("string");
+
+      const secondPage = await filesManager.list({
+        path: `/${PREFIX}`,
+        startKey: firstPage.nextContinuationToken,
+      });
+
+      expect(secondPage.items?.length).toBeGreaterThan(0);
+
+      const firstPaths = new Set(firstPage.items.map((i) => i.path));
+      for (const item of secondPage.items ?? []) {
+        expect(firstPaths.has(item.path)).toBe(false);
       }
     });
   });

@@ -59,7 +59,7 @@ function readRuntimeEnvVar(key: string): string | undefined {
   return fromGlobal ?? fromImportMeta ?? fromWindow;
 }
 
-function detectEnvName(): EnvName {
+function getDefaultEnvName(): EnvName {
   return BUILT_DEFAULT_BASE_ENV;
 }
 
@@ -105,11 +105,11 @@ export function setEnvironment(
   if (typeof nameOrConfig === "string") {
     current = buildEnv(nameOrConfig, overrides);
   } else {
-    current = buildEnv(detectEnvName(), nameOrConfig);
+    current = buildEnv(getDefaultEnvName(), nameOrConfig);
   }
 }
 
 export function getEnvironment(): Environment {
-  if (!current) current = buildEnv(detectEnvName());
+  if (!current) current = buildEnv(getDefaultEnvName());
   return current;
 }

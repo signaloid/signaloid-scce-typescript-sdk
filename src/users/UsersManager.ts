@@ -2,6 +2,7 @@ import { AxiosInstance } from "axios";
 import {
   UserDetails,
   UserPatchRequest,
+  UserPatchRemovableField,
   UserCustomization,
   UserLogsResponse,
   UserLogsQueryParams,
@@ -24,7 +25,7 @@ export class UsersManager {
   public async update(
     userID: string,
     payload: UserPatchRequest,
-    options?: { remove?: string[] },
+    options?: { remove?: UserPatchRemovableField[] },
   ): Promise<UserUpdateResponse> {
     let params: URLSearchParams | undefined;
     if (options?.remove && options.remove.length > 0) {

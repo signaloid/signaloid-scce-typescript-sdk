@@ -8,6 +8,7 @@ import {
   LookupRepositoryRequest,
   LookupRepositoryResponse,
   RepositoryDetails,
+  RepositoryPatchRemovableField,
   RepositoryPatchRequest,
   RepositoryRequest,
 } from "../types/repositories";
@@ -57,7 +58,7 @@ export class RepositoriesManager {
   public async update(
     repositoryID: string,
     payload: RepositoryPatchRequest,
-    options?: { remove?: string[] },
+    options?: { remove?: RepositoryPatchRemovableField[] },
   ): Promise<RepositoryDetails> {
     let params: URLSearchParams | undefined;
     if (options?.remove && options.remove.length > 0) {

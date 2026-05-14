@@ -16,6 +16,7 @@ import { ERROR_CODES } from "../errors/codes";
 import { DatasourcesManager } from "../datasources/DatasourcesManager";
 import { UsersManager } from "../users/UsersManager";
 import { idToChannelName } from "../utils/channel";
+import { serializeListParams } from "../utils/listParams";
 
 export class TasksManager {
   constructor(
@@ -52,7 +53,7 @@ export class TasksManager {
   ): Promise<ListTasksResponse> {
     const response = await this.client.get<ListTasksResponse>("/tasks", {
       params: this.buildListParams(options),
-      paramsSerializer: TasksManager.serializeListParams,
+      paramsSerializer: serializeListParams,
     });
     return response.data;
   }
@@ -62,7 +63,7 @@ export class TasksManager {
   ): Promise<ListTasksSummaryResponse> {
     const response = await this.client.get<ListTasksSummaryResponse>("/tasks", {
       params: this.buildListParams({ ...options, noexpand: true }),
-      paramsSerializer: TasksManager.serializeListParams,
+      paramsSerializer: serializeListParams,
     });
     return response.data;
   }
@@ -76,18 +77,6 @@ export class TasksManager {
     if (options?.limit !== undefined) params.limit = options.limit;
     if (options?.noexpand) params.noexpand = "true";
     return params;
-  }
-
-  private static serializeListParams(p: Record<string, any>): string {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(p)) {
-      if (Array.isArray(value)) {
-        for (const v of value) searchParams.append(key, v);
-      } else if (value !== undefined) {
-        searchParams.append(key, String(value));
-      }
-    }
-    return searchParams.toString();
   }
 
   public async getOne(taskID: string): Promise<TaskDetail> {
@@ -119,8 +108,13 @@ export class TasksManager {
     if (isPublic === undefined) {
       try {
         isPublic = (await this.getOne(taskID)).IsPublic ?? false;
-      } catch {
-        isPublic = false;
+      } catch (err) {
+        // Only treat 404 as non-public; other errors must propagate so we don't subscribe to the wrong realtime channel.
+        if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
+          isPublic = false;
+        } else {
+          throw err;
+        }
       }
     }
 
@@ -273,7 +267,7 @@ export class TasksManager {
 
   public async createPublicTask(
     buildID: string,
-    payload?: CreateTaskRequest,
+    payload: CreateTaskRequest,
   ): Promise<CreateTaskResponse> {
     const response = await this.client.post<CreateTaskResponse>(
       `/builds/${buildID}/tasks/public`,

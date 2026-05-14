@@ -1,6 +1,6 @@
 export type ThingFileItem = {
-  file: string;
-  updated_at: number;
+  File: string;
+  UpdatedAt: number;
 };
 
 export type ThingDetails = {
@@ -10,25 +10,25 @@ export type ThingDetails = {
   CreatedAt: number;
   UpdatedAt: number;
   Name: string;
-  ThingStatus?: any;
-  Presence?: any;
+  ThingStatus?: unknown;
+  Presence?: unknown;
   Topics?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type ThingPatchRequest = {
   Name: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type ListThingsResponse = {
-  user_id: string;
-  thing_ids: string[];
-  thing_count: number;
+  UserID: string;
+  ThingIDs: string[];
+  ThingCount: number;
 };
 
 export type ThingFilesResponse = {
-  user_id: string;
-  thing_id: string;
-  items: ThingFileItem[];
+  UserID: string;
+  ThingID: string;
+  Items: ThingFileItem[];
 };

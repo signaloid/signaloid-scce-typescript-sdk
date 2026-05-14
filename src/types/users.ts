@@ -65,6 +65,20 @@ export type UserPatchRequest = {
   Preferences: UserPatchRequestPreferences;
 };
 
+export type UserPatchRemovableField =
+  | "Editor_Execution_Arguments"
+  | "Editor_Execution_CodeLanguage"
+  | "Editor_Execution_Core"
+  | "Editor_Execution_DataSources"
+  | "Editor_Layout"
+  | "Editor_Layout_VariableViewer"
+  | "Editor_SourceCode"
+  | "Editor_Theme"
+  | "Execution_DefaultCore"
+  | "Execution_DefaultDataSources"
+  | "Execution_DefaultReferenceCore"
+  | (string & {});
+
 export type UserUpdateResponsePreferences = {
   UpdatedAt: number;
   Editor_Execution_Arguments?: string;
