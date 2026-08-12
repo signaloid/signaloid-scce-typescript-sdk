@@ -60,6 +60,26 @@ int main() {
     expect(typeof build.BuildID).toBe("string");
   });
 
+  it("round-trips ConfigMk through createFromSourceCode and getOne", async () => {
+    const configMk =
+      "EXTRA_LIBS = -lQuantLibB -lQuantLibA\nCXXFLAGS += -std=c++14\n";
+    const payload: CreateSourceBuildRequest = {
+      Code: `#include <stdio.h>
+int main() { printf("hi"); return 0; }`,
+      Language: "C",
+      CoreID: "cor_b21e4de9927158c1a5b603c2affb8a09",
+      Arguments: "",
+      DataSources: [],
+      ConfigMk: configMk,
+    };
+
+    const created = await buildsManager.createFromSourceCode(payload);
+    expect(created.BuildID).toBeDefined();
+
+    const got = await buildsManager.getOne(created.BuildID);
+    expect(got.Application?.SourceCode?.ConfigMk).toBe(configMk);
+  });
+
   it("creates a build from repository", async () => {
     let repositoryId: string;
 

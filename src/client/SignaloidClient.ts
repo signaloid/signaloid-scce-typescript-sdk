@@ -124,34 +124,36 @@ export class SignaloidClient {
           const message = (body as any).message || err.message;
 
           let code: string;
-          switch (status) {
-            case 400:
-              code = ERROR_CODES.API_BAD_REQUEST;
-              break;
-            case 401:
-              code = ERROR_CODES.API_UNAUTHORIZED;
-              break;
-            case 403:
-              code = ERROR_CODES.API_FORBIDDEN;
-              break;
-            case 404:
-              code = ERROR_CODES.API_NOT_FOUND;
-              break;
-            case 409:
-              code = ERROR_CODES.API_CONFLICT;
-              break;
-            case 422:
-              code = ERROR_CODES.API_UNPROCESSABLE_ENTITY;
-              break;
-            case 500:
-              code = ERROR_CODES.API_SERVER_ERROR;
-              break;
-            default:
-              code = ERROR_CODES.API_FATAL;
-              break;
+          if (typeof status === "number" && status >= 500 && status <= 599) {
+            // The precise code is on err.status
+            code = ERROR_CODES.API_SERVER_ERROR;
+          } else {
+            switch (status) {
+              case 400:
+                code = ERROR_CODES.API_BAD_REQUEST;
+                break;
+              case 401:
+                code = ERROR_CODES.API_UNAUTHORIZED;
+                break;
+              case 403:
+                code = ERROR_CODES.API_FORBIDDEN;
+                break;
+              case 404:
+                code = ERROR_CODES.API_NOT_FOUND;
+                break;
+              case 409:
+                code = ERROR_CODES.API_CONFLICT;
+                break;
+              case 422:
+                code = ERROR_CODES.API_UNPROCESSABLE_ENTITY;
+                break;
+              default:
+                code = ERROR_CODES.API_FATAL;
+                break;
+            }
           }
 
-          return Promise.reject(new SdkError(code, message, body));
+          return Promise.reject(new SdkError(code, message, body, status));
         }
 
         // no response (network / timeout / other)

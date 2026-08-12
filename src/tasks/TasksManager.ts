@@ -246,7 +246,11 @@ export class TasksManager {
     }
     const response = await this.client.get(
       `/tasks/${taskID}/output/${outStream}`,
-      { params, responseType: "text", transformResponse: [(d) => d] },
+      {
+        params,
+        responseType: "text",
+        transformResponse: [(d) => d],
+      },
     );
     return response.data;
   }
