@@ -1,6 +1,6 @@
 {
   "name": "@signaloid/scce-sdk",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Signaloid Cloud Compute Engine API SDK",
   "author": "Signaloid <developer-support@signaloid.com>",
   "license": "MIT",
@@ -50,7 +50,7 @@
   },
   "homepage": "https://github.com/signaloid/signaloid-scce-typescript-sdk#readme",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "sideEffects": false,
   "scripts": {
@@ -66,7 +66,6 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
@@ -82,7 +81,6 @@
     "axios": "^1.12.0",
     "dotenv-cli": "^8.0.0",
     "jest": "^30.0.4",
-    "uuid": "^11.1.0",
     "ws": "^8.18.3"
   },
   "jest": {

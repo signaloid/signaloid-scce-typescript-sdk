@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import { RealtimeClient } from "./RealtimeClient";
 import { sanitizeChannelName } from "../utils/sanitizeChannelName";
 import { SdkError } from "../errors/SdkError";
@@ -81,7 +80,7 @@ export class SubscriptionClient {
 }
 
 export class Channel {
-  private id = uuidv4();
+  private id = crypto.randomUUID();
   private name: string;
   private client: RealtimeClient;
   private subscribers: Set<SubscriptionClient>;
