@@ -43,6 +43,8 @@ export type UserDetails = {
   CreatedAt: number;
   Preferences: UserPreferences;
   ResourceUsage: UserResourceUsage;
+  Role?: string | null;
+  Industry?: string | null;
   [key: string]: any;
 };
 
@@ -62,7 +64,10 @@ export type UserPatchRequestPreferences = {
 };
 
 export type UserPatchRequest = {
-  Preferences: UserPatchRequestPreferences;
+  Preferences?: UserPatchRequestPreferences;
+  // null clears the stored value, an omitted key leaves it unchanged
+  Role?: string | null;
+  Industry?: string | null;
 };
 
 export type UserPatchRemovableField =
@@ -96,7 +101,10 @@ export type UserUpdateResponsePreferences = {
 };
 
 export type UserUpdateResponse = {
-  Preferences: UserUpdateResponsePreferences;
+  // the API returns only the attributes touched by the patch
+  Preferences?: UserUpdateResponsePreferences;
+  Role?: string;
+  Industry?: string;
 };
 
 export type UserCustomization = {
