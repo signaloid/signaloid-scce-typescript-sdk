@@ -2,7 +2,7 @@ import {
   WSClass,
   hasNodeTerminate,
   hasNodeRemoveAllListeners,
-} from "#ws-runtime";
+} from "../runtime/ws";
 import { AuthManager } from "../auth/AuthManager";
 import { Channel } from "./Channel";
 import { SdkError } from "../errors/SdkError";
