@@ -6,35 +6,35 @@ export type AuthOptions = ApiKeyAuth | JwtAuth | EmailAuth;
 export type AuthMethod = AuthOptions["method"];
 
 export type OverrideEndpoints = {
-  api?: string;
-  websocket?: string;
-  host?: string;
-  publicWebsocket?: string;
-  publicHost?: string;
+	api?: string;
+	websocket?: string;
+	host?: string;
+	publicWebsocket?: string;
+	publicHost?: string;
 };
 
 export type ClientOptions = {
-  overrideEndpoints?: OverrideEndpoints;
+	overrideEndpoints?: OverrideEndpoints;
 };
 
 export type TraceVariable = {
-  // Object: "TraceVariable",
-  File: string;
-  LineNumber: number;
-  Expression: string;
+	// Object: "TraceVariable",
+	File: string;
+	LineNumber: number;
+	Expression: string;
 };
 
-export type ResourceType =
-  | "Gateway"
-  | "Bucket"
-  | "Drive"
-  | "SignaloidCloudStorage";
+/** `T` with every property optional, except that at least one must be present. */
+export type AtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> & Partial<Omit<T, K>> }[keyof T];
+
+export type ResourceType = "Gateway" | "Bucket" | "Drive" | "SignaloidCloudStorage";
 
 export type DataSource = {
-  Object: "DataSource";
-  ResourceID: string;
-  ResourceType: ResourceType;
-  Location: string;
+	Object: "DataSource";
+	ResourceID: string;
+	ResourceType: ResourceType;
+	/** A relative path inside the guest directory, such as "sd0". */
+	Location: string;
 };
 
 export type * from "./builds";
@@ -54,3 +54,4 @@ export type * from "./subscriptions";
 export type * from "./github";
 export type * from "./organizations";
 export type * from "./plotting";
+export type * from "./tiers";

@@ -1,138 +1,151 @@
+import { AxiosInstance } from "axios";
 import { createClient } from "../client/createClient";
 import { FilesManager } from "../files/FilesManager";
 import { FileItem } from "../types/files";
 
 describe("FilesManager", () => {
-  let filesManager: FilesManager;
+	let filesManager: FilesManager;
 
-  beforeAll(() => {
-    const apiKey = process.env.SIGNALOID_USER_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
-    }
+	beforeAll(() => {
+		const apiKey = process.env.SIGNALOID_USER_API_KEY;
+		if (!apiKey) {
+			throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
+		}
 
-    const sdk = createClient({ method: "apiKey", key: apiKey });
-    filesManager = sdk.files;
-  });
+		const sdk = createClient({ method: "apiKey", key: apiKey });
+		filesManager = sdk.files;
+	});
 
-  describe("list", () => {
-    it("returns items with correct shape", async () => {
-      const response = await filesManager.list({ path: "/" });
+	describe("list", () => {
+		it("returns items with correct shape", async () => {
+			const response = await filesManager.list({ path: "/" });
 
-      expect(response.items).toBeInstanceOf(Array);
-      expect(typeof response.count).toBe("number");
-      expect(response.count).toBe(response.items.length);
+			expect(response.items).toBeInstanceOf(Array);
+			expect(typeof response.count).toBe("number");
+			expect(response.count).toBe(response.items.length);
 
-      if (response.items.length > 0) {
-        const item = response.items[0];
-        expect(typeof item.path).toBe("string");
-        expect(typeof item.last_modified).toBe("number");
-        expect(typeof item.size).toBe("number");
-        expect(typeof item.etag).toBe("string");
-      }
-    });
+			if (response.items.length > 0) {
+				const item = response.items[0];
+				expect(typeof item.path).toBe("string");
+				expect(typeof item.last_modified).toBe("number");
+				expect(typeof item.size).toBe("number");
+				expect(typeof item.etag).toBe("string");
+			}
+		});
 
-    it("supports pagination via nextContinuationToken", async () => {
-      const PREFIX = "pagination/";
-      const SEED_COUNT = 5;
-      for (let i = 0; i < SEED_COUNT; i++) {
-        await filesManager.upload(`${PREFIX}page-${i}.txt`, `content-${i}`);
-      }
+		it("supports pagination via nextContinuationToken", async () => {
+			const PREFIX = "pagination/";
+			const SEED_COUNT = 5;
+			for (let i = 0; i < SEED_COUNT; i++) {
+				await filesManager.upload(`${PREFIX}page-${i}.txt`, `content-${i}`);
+			}
 
-      const firstPage = await filesManager.list({ path: `/${PREFIX}` });
-      expect(firstPage.items?.length).toBeGreaterThan(0);
+			const firstPage = await filesManager.list({ path: `/${PREFIX}` });
+			expect(firstPage.items?.length).toBeGreaterThan(0);
 
-      if (!firstPage.nextContinuationToken) {
-        return;
-      }
+			if (!firstPage.nextContinuationToken) {
+				return;
+			}
 
-      expect(typeof firstPage.nextContinuationToken).toBe("string");
+			expect(typeof firstPage.nextContinuationToken).toBe("string");
 
-      const secondPage = await filesManager.list({
-        path: `/${PREFIX}`,
-        startKey: firstPage.nextContinuationToken,
-      });
+			const secondPage = await filesManager.list({
+				path: `/${PREFIX}`,
+				startKey: firstPage.nextContinuationToken,
+			});
 
-      expect(secondPage.items?.length).toBeGreaterThan(0);
+			expect(secondPage.items?.length).toBeGreaterThan(0);
 
-      const firstPaths = new Set(firstPage.items.map((i) => i.path));
-      for (const item of secondPage.items ?? []) {
-        expect(firstPaths.has(item.path)).toBe(false);
-      }
-    });
-  });
+			const firstPaths = new Set(firstPage.items.map((i) => i.path));
+			for (const item of secondPage.items ?? []) {
+				expect(firstPaths.has(item.path)).toBe(false);
+			}
+		});
+	});
 
-  describe("get (stat)", () => {
-    it("returns file metadata with correct shape", async () => {
-      // First ensure a file exists
-      await filesManager.upload("test-stat-file.txt", "test content for stat");
+	describe("get (stat)", () => {
+		it("returns file metadata with correct shape", async () => {
+			// First ensure a file exists
+			await filesManager.upload("test-stat-file.txt", "test content for stat");
 
-      const result = (await filesManager.get("test-stat-file.txt")) as FileItem;
+			const result = (await filesManager.get("test-stat-file.txt")) as FileItem;
 
-      expect(result).toBeDefined();
-      expect(typeof result.last_modified).toBe("number");
-      expect(typeof result.size).toBe("number");
-      expect(typeof result.content_type).toBe("string");
-      expect(typeof result.etag).toBe("string");
-      // download_url should NOT be present without ?download
-      expect(result.download_url).toBeUndefined();
-    });
+			expect(result).toBeDefined();
+			expect(typeof result.last_modified).toBe("number");
+			expect(typeof result.size).toBe("number");
+			expect(typeof result.content_type).toBe("string");
+			expect(typeof result.etag).toBe("string");
+			// download_url should NOT be present without ?download
+			expect(result.download_url).toBeUndefined();
+		});
 
-    it("includes download_url when download=true", async () => {
-      const result = (await filesManager.get(
-        "test-stat-file.txt",
-        true,
-      )) as FileItem;
+		it("includes download_url when download=true", async () => {
+			const result = (await filesManager.get("test-stat-file.txt", true)) as FileItem;
 
-      expect(result).toBeDefined();
-      // When download=true, the response includes a presigned download_url
-      if (result.download_url) {
-        expect(typeof result.download_url).toBe("string");
-        expect(result.download_url).toContain("https://");
-      }
-    });
+			expect(result).toBeDefined();
+			// When download=true, the response includes a presigned download_url
+			if (result.download_url) {
+				expect(typeof result.download_url).toBe("string");
+				expect(result.download_url).toContain("https://");
+			}
+		});
 
-    it("returns 404 for non-existent file", async () => {
-      await expect(
-        filesManager.get("nonexistent-file-xyz.txt"),
-      ).rejects.toThrow();
-    });
-  });
+		it("returns 404 for non-existent file", async () => {
+			await expect(filesManager.get("nonexistent-file-xyz.txt")).rejects.toThrow();
+		});
+	});
 
-  describe("upload", () => {
-    it("uploads a string file", async () => {
-      const result = await filesManager.upload(
-        "test-upload.txt",
-        "Hello, test file!",
-      );
+	describe("upload", () => {
+		it("uploads a string file", async () => {
+			const result = await filesManager.upload("test-upload.txt", "Hello, test file!");
 
-      expect(result.message).toBeDefined();
-      expect(typeof result.message).toBe("string");
-    });
-  });
+			expect(result.message).toBeDefined();
+			expect(typeof result.message).toBe("string");
+		});
+	});
 
-  describe("createDirectory", () => {
-    it("creates a directory", async () => {
-      const result = await filesManager.createDirectory("test-dir/");
+	describe("createDirectory", () => {
+		it("creates a directory", async () => {
+			const result = await filesManager.createDirectory("test-dir/");
 
-      expect(result.message).toBeDefined();
-      expect(typeof result.message).toBe("string");
-    });
-  });
+			expect(result.message).toBeDefined();
+			expect(typeof result.message).toBe("string");
+		});
+	});
 
-  describe("delete", () => {
-    it("deletes a file", async () => {
-      // Upload then delete
-      await filesManager.upload("test-delete-me.txt", "to be deleted");
-      const result = await filesManager.delete("test-delete-me.txt");
+	describe("delete", () => {
+		it("deletes a file", async () => {
+			// Upload then delete
+			await filesManager.upload("test-delete-me.txt", "to be deleted");
+			const result = await filesManager.delete("test-delete-me.txt");
 
-      expect(result.message).toBeDefined();
-    });
+			expect(result.message).toBeDefined();
+		});
 
-    it("returns error for non-existent file", async () => {
-      await expect(
-        filesManager.delete("nonexistent-delete-xyz.txt"),
-      ).rejects.toThrow();
-    });
-  });
+		it("returns error for non-existent file", async () => {
+			await expect(filesManager.delete("nonexistent-delete-xyz.txt")).rejects.toThrow();
+		});
+	});
+});
+
+// Runs without the API: the guard must reject before FilesManager asks for a presigned URL.
+describe("FilesManager empty upload guard", () => {
+	const put = jest.fn().mockResolvedValue({ data: { message: "OK" } });
+	const filesManager = new FilesManager({ put } as unknown as AxiosInstance);
+
+	beforeEach(() => put.mockClear());
+
+	it.each([
+		["string", ""],
+		["Blob", new Blob([])],
+		["ArrayBuffer", new ArrayBuffer(0)],
+	])("rejects empty %s content without calling the API", async (_kind, content) => {
+		await expect(filesManager.upload("empty.txt", content)).rejects.toThrow(/empty file/);
+		expect(put).not.toHaveBeenCalled();
+	});
+
+	it("still requests a presigned URL for non-empty content", async () => {
+		await filesManager.upload("one-byte.txt", "x");
+		expect(put).toHaveBeenCalledWith("/files/one-byte.txt", null, { params: { size: "1" } });
+	});
 });

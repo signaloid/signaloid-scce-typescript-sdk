@@ -1,20 +1,18 @@
+/** A Ux string, or a list of numeric samples. */
 export type PlotRequest = {
-  taskID?: string;
-  valueID?: string;
-  payload?: string;
-  data?: any;
+	payload: string | number[];
 };
 
 export type PlotResponse = {
-  plotID: string;
-  presignedURL: string;
+	plotID: string;
+	presignedURL: string;
 };
 
 export type PlotOptions = {
-  fullResolution?: boolean;
-  xLimMin?: number;
-  xLimMax?: number;
-  yLimMin?: number;
-  yLimMax?: number;
-  xAxisLabel?: string;
+	fullResolution?: boolean;
+	xLimMin?: number;
+	xLimMax?: number;
+	yLimMin?: number;
+	yLimMax?: number;
+	xAxisLabel?: string;
 };

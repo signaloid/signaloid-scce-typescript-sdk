@@ -1,17 +1,17 @@
 import { AxiosInstance } from "axios";
 import {
-  CreateSourceBuildRequest,
-  CreateSourceBuildResponse,
-  CreateRepositoryBuildRequest,
-  CreateRepositoryBuildResponse,
-  ListBuildsResponse,
-  ListBuildsSummaryResponse,
-  BuildDetails,
-  BuildVariablesResponse,
-  BuildStatus,
-  BuildBinaryResponse,
-  BuildOutputs,
-  UpdateBuildRequest,
+	CreateSourceBuildRequest,
+	CreateSourceBuildResponse,
+	CreateRepositoryBuildRequest,
+	CreateRepositoryBuildResponse,
+	ListBuildsResponse,
+	ListBuildsSummaryResponse,
+	BuildDetails,
+	BuildVariablesResponse,
+	BuildStatus,
+	BuildBinaryResponse,
+	BuildOutputs,
+	UpdateBuildRequest,
 } from "../types/builds";
 import { ListBuildTasksResponse } from "../types/tasks";
 import { RealtimeClient } from "../realtime/RealtimeClient";
@@ -21,397 +21,357 @@ import { ERROR_CODES } from "../errors/codes";
 import { UsersManager } from "../users/UsersManager";
 import { idToChannelName } from "../utils/channel";
 import { serializeListParams } from "../utils/listParams";
+import { parseStatusEvent } from "../utils/statusEvent";
+
+const BUILD_EVENT_ID_KEYS = ["buildId", "BuildID"] as const;
 
 export class BuildsManager {
-  constructor(
-    private readonly client: AxiosInstance,
-    private readonly realtime: RealtimeClient,
-    private readonly publicRealtime: RealtimeClient,
-    private readonly auth: AuthManager,
-    private readonly users: UsersManager,
-  ) {}
+	constructor(
+		private readonly client: AxiosInstance,
+		private readonly realtime: RealtimeClient,
+		private readonly publicRealtime: RealtimeClient,
+		private readonly auth: AuthManager,
+		private readonly users: UsersManager,
+	) {}
 
-  public async createFromSourceCode(
-    payload: CreateSourceBuildRequest,
-    discoverVars?: boolean,
-  ): Promise<CreateSourceBuildResponse> {
-    const config =
-      discoverVars !== undefined
-        ? { params: { DiscoverVariables: discoverVars } }
-        : undefined;
-    const response = await this.client.post<CreateSourceBuildResponse>(
-      "/sourcecode/builds",
-      payload,
-      config,
-    );
-    return response.data;
-  }
+	public async createFromSourceCode(
+		payload: CreateSourceBuildRequest,
+		discoverVars?: boolean,
+	): Promise<CreateSourceBuildResponse> {
+		const config = discoverVars !== undefined ? { params: { DiscoverVariables: discoverVars } } : undefined;
+		const response = await this.client.post<CreateSourceBuildResponse>("/sourcecode/builds", payload, config);
+		return response.data;
+	}
 
-  public async createFromRepository(
-    repositoryID: string,
-    payload?: CreateRepositoryBuildRequest,
-    discoverVars?: boolean,
-  ): Promise<CreateRepositoryBuildResponse> {
-    const url = `/repositories/${repositoryID}/builds`;
-    const config =
-      discoverVars !== undefined
-        ? { params: { DiscoverVariables: discoverVars } }
-        : undefined;
+	public async createFromRepository(
+		repositoryID: string,
+		payload?: CreateRepositoryBuildRequest,
+		discoverVars?: boolean,
+	): Promise<CreateRepositoryBuildResponse> {
+		const url = `/repositories/${repositoryID}/builds`;
+		const config = discoverVars !== undefined ? { params: { DiscoverVariables: discoverVars } } : undefined;
 
-    const response = await this.client.post<CreateRepositoryBuildResponse>(
-      url,
-      payload,
-      config,
-    );
-    return response.data;
-  }
+		const response = await this.client.post<CreateRepositoryBuildResponse>(url, payload, config);
+		return response.data;
+	}
 
-  public async list(options?: {
-    startKey?: string;
-    from?: string;
-    to?: string;
-    status?: BuildStatus | BuildStatus[];
-    limit?: number;
-  }): Promise<ListBuildsResponse> {
-    const params: Record<string, any> = {};
-    if (options?.startKey) params.startKey = options.startKey;
-    if (options?.from) params.from = options.from;
-    if (options?.to) params.to = options.to;
-    if (options?.status) params.status = options.status;
-    if (options?.limit !== undefined) params.limit = options.limit;
+	public async list(options?: {
+		startKey?: string;
+		from?: string;
+		to?: string;
+		status?: BuildStatus | BuildStatus[];
+		limit?: number;
+	}): Promise<ListBuildsResponse> {
+		const params: Record<string, any> = {};
+		if (options?.startKey) params.startKey = options.startKey;
+		if (options?.from) params.from = options.from;
+		if (options?.to) params.to = options.to;
+		if (options?.status) params.status = options.status;
+		if (options?.limit !== undefined) params.limit = options.limit;
 
-    const response = await this.client.get<ListBuildsResponse>("/builds", {
-      params,
-      paramsSerializer: serializeListParams,
-    });
-    return response.data;
-  }
+		const response = await this.client.get<ListBuildsResponse>("/builds", {
+			params,
+			paramsSerializer: serializeListParams,
+		});
+		return response.data;
+	}
 
-  /**
-   * List builds in the lightweight "no expand" mode. The backend returns
-   * only `{ BuildID, Owner, CreatedAt }` for each build, allowing a much
-   * larger page size (up to 500 vs 25 for the expanded `list()`).
-   *
-   * Use this when you only need to enumerate builds (e.g. to fan out status
-   * checks) and do not need the full `BuildDetails`.
-   */
-  public async listSummary(options?: {
-    startKey?: string;
-    from?: string;
-    to?: string;
-    status?: BuildStatus | BuildStatus[];
-    limit?: number;
-  }): Promise<ListBuildsSummaryResponse> {
-    const params: Record<string, any> = { noexpand: true };
-    if (options?.startKey) params.startKey = options.startKey;
-    if (options?.from) params.from = options.from;
-    if (options?.to) params.to = options.to;
-    if (options?.status) params.status = options.status;
-    if (options?.limit !== undefined) params.limit = options.limit;
+	/**
+	 * List builds in the lightweight "no expand" mode. The backend returns
+	 * only `{ BuildID, Owner, CreatedAt }` for each build, allowing a much
+	 * larger page size (up to 500 vs 25 for the expanded `list()`).
+	 *
+	 * Use this when you only need to enumerate builds (e.g., to fan out status
+	 * checks) and do not need the full `BuildDetails`.
+	 */
+	public async listSummary(options?: {
+		startKey?: string;
+		from?: string;
+		to?: string;
+		status?: BuildStatus | BuildStatus[];
+		limit?: number;
+	}): Promise<ListBuildsSummaryResponse> {
+		const params: Record<string, any> = { noexpand: true };
+		if (options?.startKey) params.startKey = options.startKey;
+		if (options?.from) params.from = options.from;
+		if (options?.to) params.to = options.to;
+		if (options?.status) params.status = options.status;
+		if (options?.limit !== undefined) params.limit = options.limit;
 
-    const response = await this.client.get<ListBuildsSummaryResponse>(
-      "/builds",
-      {
-        params,
-        paramsSerializer: serializeListParams,
-      },
-    );
-    return response.data;
-  }
+		const response = await this.client.get<ListBuildsSummaryResponse>("/builds", {
+			params,
+			paramsSerializer: serializeListParams,
+		});
+		return response.data;
+	}
 
-  public async getOne(buildID: string): Promise<BuildDetails> {
-    const response = await this.client.get(`/builds/${buildID}`);
-    return response.data;
-  }
+	public async getOne(buildID: string): Promise<BuildDetails> {
+		const response = await this.client.get(`/builds/${buildID}`);
+		return response.data;
+	}
 
-  public async updateOne(
-    buildID: string,
-    payload: UpdateBuildRequest,
-  ): Promise<BuildDetails> {
-    const response = await this.client.patch<BuildDetails>(
-      `/builds/${buildID}`,
-      payload,
-    );
-    return response.data;
-  }
+	public async updateOne(buildID: string, payload: UpdateBuildRequest): Promise<BuildDetails> {
+		const response = await this.client.patch<BuildDetails>(`/builds/${buildID}`, payload);
+		return response.data;
+	}
 
-  public async deleteOne(buildID: string): Promise<void> {
-    await this.client.delete(`/builds/${buildID}`);
-  }
+	public async deleteOne(buildID: string): Promise<void> {
+		await this.client.delete(`/builds/${buildID}`);
+	}
 
-  public async cancel(buildID: string): Promise<void> {
-    await this.client.post(`/builds/${buildID}/cancel`);
-  }
+	public async cancel(buildID: string): Promise<void> {
+		await this.client.post(`/builds/${buildID}/cancel`);
+	}
 
-  public async getStatus(buildID: string): Promise<string> {
-    return (await this.getOne(buildID)).Status;
-  }
+	public async getStatus(buildID: string): Promise<string> {
+		return (await this.getOne(buildID)).Status;
+	}
 
-  public async getVariables(
-    buildID: string,
-    startKey?: string,
-  ): Promise<BuildVariablesResponse> {
-    const response = await this.client.get<BuildVariablesResponse>(
-      `/builds/${buildID}/variables`,
-      {
-        params: startKey ? { startKey } : undefined,
-      },
-    );
-    return response.data;
-  }
+	public async getVariables(buildID: string, startKey?: string): Promise<BuildVariablesResponse> {
+		const response = await this.client.get<BuildVariablesResponse>(`/builds/${buildID}/variables`, {
+			params: startKey ? { startKey } : undefined,
+		});
+		return response.data;
+	}
 
-  public async listTasks(
-    buildID: string,
-    options?: { startKey?: string; from?: string; to?: string },
-  ): Promise<ListBuildTasksResponse> {
-    const params: Record<string, string> = {};
-    if (options?.startKey) params.startKey = options.startKey;
-    if (options?.from) params.from = options.from;
-    if (options?.to) params.to = options.to;
+	public async listTasks(
+		buildID: string,
+		options?: { startKey?: string; from?: string; to?: string },
+	): Promise<ListBuildTasksResponse> {
+		const params: Record<string, string> = {};
+		if (options?.startKey) params.startKey = options.startKey;
+		if (options?.from) params.from = options.from;
+		if (options?.to) params.to = options.to;
 
-    const response = await this.client.get<ListBuildTasksResponse>(
-      `/builds/${buildID}/tasks`,
-      { params },
-    );
-    return response.data;
-  }
+		const response = await this.client.get<ListBuildTasksResponse>(`/builds/${buildID}/tasks`, { params });
+		return response.data;
+	}
 
-  public async getOutputs(buildID: string): Promise<BuildOutputs> {
-    const response = await this.client.get<BuildOutputs>(
-      `/builds/${buildID}/outputs`,
-    );
-    return response.data;
-  }
+	public async getOutputs(buildID: string): Promise<BuildOutputs> {
+		const response = await this.client.get<BuildOutputs>(`/builds/${buildID}/outputs`);
+		return response.data;
+	}
 
-  public async getBinary(buildID: string): Promise<BuildBinaryResponse> {
-    const response = await this.client.get(`/builds/${buildID}/binary`);
-    return response.data;
-  }
+	/** Only for builds on the C0-microSD, C0-microSD-plus and C0-SD Core classes. */
+	public async getBinary(buildID: string): Promise<BuildBinaryResponse> {
+		const response = await this.client.get<BuildBinaryResponse>(`/builds/${buildID}/binary`);
+		return response.data;
+	}
 
-  /**
-   * @deprecated Use {@link waitForBuild} instead.
-   *
-   * This method is deprecated and will be removed in a future release.
-   */
-  public async waitForBuildAndGetOutputs(
-    buildID: string,
-    options: { timeoutMs?: number; userId?: string } = {},
-  ): Promise<{ status: BuildStatus; outputs: any }> {
-    const timeoutMs = options.timeoutMs ?? 60000;
-    let userId: string | undefined = options.userId;
+	/**
+	 * @deprecated Use {@link waitForBuild} instead.
+	 *
+	 * This method is deprecated and will be removed in a future release.
+	 */
+	public async waitForBuildAndGetOutputs(
+		buildID: string,
+		options: { timeoutMs?: number; userId?: string } = {},
+	): Promise<{ status: BuildStatus; outputs: any }> {
+		const timeoutMs = options.timeoutMs ?? 60000;
+		let userId: string | undefined = options.userId;
 
-    if (!userId) {
-      userId = await this.auth.getUserId().catch(() => undefined);
-    }
-    if (!userId) {
-      userId = (await this.users.me()).UserID;
-    }
+		if (!userId) {
+			userId = await this.auth.getUserId().catch(() => undefined);
+		}
+		if (!userId) {
+			userId = (await this.users.me()).UserID;
+		}
 
-    const channel = await this.realtime
-      .channel(`build-status/${userId}`)
-      .subscribe();
-    let isResolved = false; // Prevent multiple resolutions
+		const channel = await this.realtime.channel(`build-status/${userId}`).subscribe();
+		let isResolved = false; // Prevent multiple resolutions
 
-    try {
-      return new Promise((resolve, reject) => {
-        const cleanup = async () => {
-          if (isResolved) return;
-          isResolved = true;
-          try {
-            await channel.close();
-          } catch (error) {
-            // Silent cleanup failure
-          }
-        };
+		try {
+			return new Promise((resolve, reject) => {
+				const cleanup = async () => {
+					if (isResolved) return;
+					isResolved = true;
+					try {
+						await channel.close();
+					} catch (error) {
+						// Silent cleanup failure
+					}
+				};
 
-        const timeout = setTimeout(async () => {
-          await cleanup();
-          reject(
-            new SdkError(
-              ERROR_CODES.REALTIME_TIMEOUT,
-              "Timed out waiting for build completion",
-            ),
-          );
-        }, timeoutMs);
+				const timeout = setTimeout(async () => {
+					await cleanup();
+					reject(
+						new SdkError(
+							ERROR_CODES.REALTIME_TIMEOUT,
+							"Timed out waiting for build completion",
+						),
+					);
+				}, timeoutMs);
 
-        channel.on("message", async (msg) => {
-          try {
-            const payload = (msg as any).data ?? (msg as any).event ?? msg;
-            const incomingId = payload.buildId || payload.BuildID;
-            const incomingStatus = payload.status || payload.Status;
+				channel.on("message", async (msg) => {
+					try {
+						const { id: incomingId, status: incomingStatus } = parseStatusEvent(
+							msg,
+							BUILD_EVENT_ID_KEYS,
+						);
 
-            if (incomingId !== buildID) return;
+						if (incomingId !== buildID) return;
 
-            if (
-              ["Completed", "Cancelled", "Stopped"].includes(incomingStatus)
-            ) {
-              if (isResolved) return;
+						if (incomingStatus && ["Completed", "Cancelled", "Stopped"].includes(incomingStatus)) {
+							if (isResolved) return;
 
-              clearTimeout(timeout);
-              await cleanup();
+							clearTimeout(timeout);
+							await cleanup();
 
-              try {
-                const outputs = await this.getOutputs(buildID);
-                resolve({ status: incomingStatus, outputs });
-              } catch (outputError) {
-                reject(outputError);
-              }
-            }
-          } catch (err) {
-            if (isResolved) return;
-            clearTimeout(timeout);
-            await cleanup();
-            reject(err);
-          }
-        });
+							try {
+								const outputs = await this.getOutputs(buildID);
+								resolve({ status: incomingStatus as BuildStatus, outputs });
+							} catch (outputError) {
+								reject(outputError);
+							}
+						}
+					} catch (err) {
+						if (isResolved) return;
+						clearTimeout(timeout);
+						await cleanup();
+						reject(err);
+					}
+				});
 
-        channel.on("error", async (err) => {
-          if (isResolved) return;
-          clearTimeout(timeout);
-          await cleanup();
-          reject(err);
-        });
-      });
-    } catch (subscribeError) {
-      // If subscription fails, still try to clean up
-      try {
-        channel.close();
-      } catch {
-        // Silent cleanup failure
-      }
-      throw subscribeError;
-    }
-  }
+				channel.on("error", async (err) => {
+					if (isResolved) return;
+					clearTimeout(timeout);
+					await cleanup();
+					reject(err);
+				});
+			});
+		} catch (subscribeError) {
+			// If subscription fails, still try to clean up
+			try {
+				channel.close();
+			} catch {
+				// Silent cleanup failure
+			}
+			throw subscribeError;
+		}
+	}
 
-  public async waitForBuild(
-    buildID: string,
-    options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},
-  ): Promise<string> {
-    const isAliveIntervalSec = 10;
-    const completeStatus = ["Completed", "Cancelled", "Stopped"];
-    const timeoutSec = options.timeoutSec ?? 60;
+	public async waitForBuild(
+		buildID: string,
+		options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},
+	): Promise<string> {
+		const isAliveIntervalSec = 10;
+		const completeStatus = ["Completed", "Cancelled", "Stopped"];
+		const timeoutSec = options.timeoutSec ?? 60;
 
-    let isPublic = options.isPublic;
-    if (isPublic === undefined) {
-      try {
-        isPublic = (await this.getOne(buildID)).IsPublic ?? false;
-      } catch (err) {
-        // Only treat 404 as non-public; other errors must propagate so we don't subscribe to the wrong realtime channel.
-        if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
-          isPublic = false;
-        } else {
-          throw err;
-        }
-      }
-    }
+		let isPublic = options.isPublic;
+		if (isPublic === undefined) {
+			try {
+				isPublic = (await this.getOne(buildID)).IsPublic ?? false;
+			} catch (err) {
+				// Only treat 404 as non-public; other errors must propagate so we do not subscribe to the wrong real-time channel.
+				if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
+					isPublic = false;
+				} else {
+					throw err;
+				}
+			}
+		}
 
-    const realtime = isPublic ? this.publicRealtime : this.realtime;
-    const channelName = isPublic
-      ? `public-build-status/${idToChannelName(buildID)}`
-      : `build-status/${idToChannelName(options.userId || (await this.auth.getUserId()) || (await this.users.me()).UserID)}`;
+		const realtime = isPublic ? this.publicRealtime : this.realtime;
+		const channelName = isPublic
+			? `public-build-status/${idToChannelName(buildID)}`
+			: `build-status/${idToChannelName(options.userId || (await this.auth.getUserId()) || (await this.users.me()).UserID)}`;
 
-    // Subscription establishing can take up to 10sec.
-    //  -> Therefore we will likely miss updates of quick builds.
-    // Since we can't make any assumptions we start checking in parallel (Promise.race())
-    //  - If the channel is established and build is running likely everything will go fine (and fast)
-    //  - If the build had finished we need to rely on the old .getStatus() to break out.
-    // NOTE: there is an inherent *race condition*:
-    //  1. getStatus() notices the build is still running
-    //  2. While the channel is being established build finishes
-    //  -> We don't get any updates, we get blocked and timeout
-    // For several reasons updates might not come
-    //  -> Therefore every N seconds we must check the state the old way.
+		// Subscription establishing can take up to 10sec.
+		//  -> Therefore we will likely miss updates of quick builds.
+		// Since we cannot make any assumptions we start checking in parallel (Promise.race())
+		//  - If the channel is established and build is running likely everything will go fine (and fast)
+		//  - If the build had finished we need to rely on the old .getStatus() to break out.
+		// NOTE: there is an inherent *race condition*:
+		//  1. getStatus() notices the build is still running
+		//  2. While the channel is being established build finishes
+		//  -> We do not get any updates, we get blocked and timeout
+		// For several reasons updates might not come
+		//  -> Therefore every N seconds we must check the state the old way.
 
-    const channelPromise = realtime.channel(channelName).subscribe();
+		const channelPromise = realtime.channel(channelName).subscribe();
 
-    const getBuildDoneStatus = () =>
-      this.getStatus(buildID).then(
-        (status) => (completeStatus.includes(status) && status) || null,
-        () => null,
-      );
+		const getBuildDoneStatus = () =>
+			this.getStatus(buildID).then(
+				(status) => (completeStatus.includes(status) && status) || null,
+				() => null,
+			);
 
-    const buildAlreadyDonePromise = getBuildDoneStatus();
-    const potentialEndState = await Promise.race([
-      channelPromise,
-      buildAlreadyDonePromise,
-    ]);
+		const buildAlreadyDonePromise = getBuildDoneStatus();
+		const potentialEndState = await Promise.race([channelPromise, buildAlreadyDonePromise]);
 
-    if (typeof potentialEndState === "string") {
-      // oops, build is finished. Unsubscribe and return
-      let channel = await channelPromise.catch(() => {});
-      channel?.close();
-      return potentialEndState;
-    }
+		if (typeof potentialEndState === "string") {
+			// oops, build is finished. Unsubscribe and return
+			let channel = await channelPromise.catch(() => {});
+			channel?.close();
+			return potentialEndState;
+		}
 
-    // Otherwise either (1) endState is null (still running/error) or (2) the channel finished first
-    // Either way we need to immediately install handlers to not lose updates.
-    // We can still check the result of buildAlreadyDonePromise after.
-    let channel = await channelPromise;
+		// Otherwise either (1) `endState` is null (still running/error) or (2) the channel finished first
+		// Either way we need to immediately install handlers to not lose updates.
+		// We can still check the result of buildAlreadyDonePromise after.
+		let channel = await channelPromise;
 
-    return new Promise((resolve, reject) => {
-      let isDone = false;
+		return new Promise((resolve, reject) => {
+			let isDone = false;
 
-      const timeout = setTimeout(async () => {
-        if (isDone) return;
-        isDone = true;
-        cleanup();
-        reject(
-          new SdkError(ERROR_CODES.REALTIME_TIMEOUT, "Build waiting timeout"),
-        );
-      }, timeoutSec * 1000);
+			const timeout = setTimeout(async () => {
+				if (isDone) return;
+				isDone = true;
+				cleanup();
+				reject(new SdkError(ERROR_CODES.REALTIME_TIMEOUT, "Build waiting timeout"));
+			}, timeoutSec * 1000);
 
-      const regularChecks = setInterval(async () => {
-        if (isDone) return;
-        const endState = await getBuildDoneStatus();
-        if (endState) {
-          setComplete(true, endState);
-        }
-      }, isAliveIntervalSec * 1000);
+			const regularChecks = setInterval(async () => {
+				if (isDone) return;
+				const endState = await getBuildDoneStatus();
+				if (endState) {
+					setComplete(true, endState);
+				}
+			}, isAliveIntervalSec * 1000);
 
-      const messageHandler = async (msg: any) => {
-        const payload = (msg as any)?.data ?? (msg as any)?.event ?? msg;
-        const incomingId = payload.taskId || payload.taskID;
-        const incomingStatus = payload.status || payload.Status;
-        if (incomingId !== buildID) {
-          return;
-        }
-        if (completeStatus.includes(incomingStatus)) {
-          await setComplete(true, incomingStatus);
-        }
-      };
+			const messageHandler = async (msg: any) => {
+				const { id: incomingId, status: incomingStatus } = parseStatusEvent(msg, BUILD_EVENT_ID_KEYS);
+				if (incomingId !== buildID) {
+					return;
+				}
+				if (incomingStatus && completeStatus.includes(incomingStatus)) {
+					await setComplete(true, incomingStatus);
+				}
+			};
 
-      const errorHandler = async (err: any) => {
-        await setComplete(false, err?.message || err);
-      };
+			const errorHandler = async (err: any) => {
+				await setComplete(false, err?.message || err);
+			};
 
-      const cleanup = () => {
-        clearTimeout(timeout);
-        clearInterval(regularChecks);
-        channel.close();
-      };
+			const cleanup = () => {
+				clearTimeout(timeout);
+				clearInterval(regularChecks);
+				channel.close();
+			};
 
-      const setComplete = async (ok: boolean, msg: string) => {
-        if (isDone) {
-          return;
-        }
-        isDone = true;
-        cleanup();
-        if (ok) {
-          resolve(msg);
-        } else {
-          reject(new SdkError(ERROR_CODES.API_SERVER_ERROR, msg));
-        }
-      };
+			const setComplete = async (ok: boolean, msg: string) => {
+				if (isDone) {
+					return;
+				}
+				isDone = true;
+				cleanup();
+				if (ok) {
+					resolve(msg);
+				} else {
+					reject(new SdkError(ERROR_CODES.API_SERVER_ERROR, msg));
+				}
+			};
 
-      channel.on("message", messageHandler);
-      channel.on("error", errorHandler);
+			channel.on("message", messageHandler);
+			channel.on("error", errorHandler);
 
-      // Also setComplete() if the original promise succeeds
-      buildAlreadyDonePromise.then((finishedState) => {
-        if (finishedState != null) {
-          setComplete(true, finishedState);
-        }
-      });
-    });
-  }
+			// Also setComplete() if the original promise succeeds
+			buildAlreadyDonePromise.then((finishedState) => {
+				if (finishedState != null) {
+					setComplete(true, finishedState);
+				}
+			});
+		});
+	}
 }

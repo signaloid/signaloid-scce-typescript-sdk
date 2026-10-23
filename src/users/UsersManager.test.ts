@@ -2,96 +2,108 @@ import { createClient } from "../client/createClient";
 import { UsersManager } from "./UsersManager";
 
 describe("UsersManager", () => {
-  let usersManager: UsersManager;
-  let userId: string;
+	let usersManager: UsersManager;
+	let userId: string;
 
-  beforeAll(() => {
-    const apiKey = process.env.SIGNALOID_USER_API_KEY;
-    const userIdEnv = process.env.SIGNALOID_USER_ID;
+	beforeAll(() => {
+		const apiKey = process.env.SIGNALOID_USER_API_KEY;
+		const userIdEnv = process.env.SIGNALOID_USER_ID;
 
-    if (!apiKey) {
-      throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
-    }
-    if (!userIdEnv) {
-      throw new Error("Missing SIGNALOID_USER_ID environment variable");
-    }
+		if (!apiKey) {
+			throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
+		}
+		if (!userIdEnv) {
+			throw new Error("Missing SIGNALOID_USER_ID environment variable");
+		}
 
-    const sdk = createClient({ method: "apiKey", key: apiKey });
-    usersManager = sdk.users;
-    userId = userIdEnv;
-  });
+		const sdk = createClient({ method: "apiKey", key: apiKey });
+		usersManager = sdk.users;
+		userId = userIdEnv;
+	});
 
-  it("gets current user via me()", async () => {
-    const user = await usersManager.me();
+	it("gets current user via me()", async () => {
+		const user = await usersManager.me();
 
-    expect(user.Object).toBe("User");
-    expect(user.UserID).toBe(userId);
-    expect(user.Username).toBeDefined();
-    expect(typeof user.CreatedAt).toBe("number");
-    expect(user.Preferences).toBeDefined();
-    expect(typeof user.Preferences.UpdatedAt).toBe("number");
-    expect(user.ResourceUsage).toBeDefined();
-    expect(typeof user.ResourceUsage.APIAccessCount).toBe("number");
-  });
+		expect(user.Object).toBe("User");
+		expect(user.UserID).toBe(userId);
+		expect(user.Username).toBeDefined();
+		expect(typeof user.CreatedAt).toBe("number");
+		expect(user.Preferences).toBeDefined();
+		expect(typeof user.Preferences.UpdatedAt).toBe("number");
+		expect(user.ResourceUsage).toBeDefined();
+		expect(typeof user.ResourceUsage.APIAccessCount).toBe("number");
+	});
 
-  it("gets user details by ID", async () => {
-    const user = await usersManager.getOne(userId);
+	it("reports the tier and its capabilities", async () => {
+		const user = await usersManager.me();
 
-    expect(user.Object).toBe("User");
-    expect(user.UserID).toBe(userId);
-    expect(user.Username).toBeDefined();
-    expect(user.CreatedAt).toBeDefined();
-    expect(user.Preferences).toBeDefined();
-    expect(user.ResourceUsage).toBeDefined();
-    expect(typeof user.Username).toBe("string");
-    expect(typeof user.CreatedAt).toBe("number");
-  });
+		expect(typeof user.Tier).toBe("string");
+		expect(typeof user.Allowance.MaxPrecisionBits).toBe("number");
+		expect(typeof user.Allowance.MaxReferenceQuality).toBe("number");
+		expect(typeof user.Allowance.MaximumAttachedProcessorRam).toBe("number");
+		expect(user.CoreClasses.length).toBeGreaterThan(0);
+		expect(user.CoreClasses.map((coreClass) => coreClass.Name)).not.toContain("C0");
+		expect(user.Microarchitectures.length).toBeGreaterThan(0);
+		expect(user.FieldConstraints.Precision.Minimum).toBe(4);
+	});
 
-  it("gets user customization", async () => {
-    try {
-      const customization = await usersManager.getCustomization(userId);
+	it("gets user details by ID", async () => {
+		const user = await usersManager.getOne(userId);
 
-      expect(customization.Object).toBe("UserCustomization");
-      expect(customization.UserID).toBe(userId);
-      expect(customization.AtomicNetworks).toBeDefined();
-      expect(customization.Organizations).toBeDefined();
-    } catch (error: any) {
-      // Customization might not exist
-      expect(error.message).toMatch(/Customization not found|Not Found/i);
-    }
-  });
+		expect(user.Object).toBe("User");
+		expect(user.UserID).toBe(userId);
+		expect(user.Username).toBeDefined();
+		expect(user.CreatedAt).toBeDefined();
+		expect(user.Preferences).toBeDefined();
+		expect(user.ResourceUsage).toBeDefined();
+		expect(typeof user.Username).toBe("string");
+		expect(typeof user.CreatedAt).toBe("number");
+	});
 
-  it("gets user logs", async () => {
-    const logs = await usersManager.getLogs(userId);
+	it("gets user customization", async () => {
+		try {
+			const customization = await usersManager.getCustomization(userId);
 
-    expect(logs.logs).toBeInstanceOf(Array);
-    expect(typeof logs.totalResults).toBe("number");
-    expect(logs.queryTimeRange).toBeDefined();
-    expect(typeof logs.queryTimeRange.startTime).toBe("number");
-    expect(typeof logs.queryTimeRange.endTime).toBe("number");
-  });
+			expect(customization.UserID).toBe(userId);
+			expect(customization.AtomicNetworks).toBeDefined();
+			expect(customization.Organizations).toBeDefined();
+		} catch (error: any) {
+			// Customization might not exist
+			expect(error.message).toMatch(/Customization not found|Not Found/i);
+		}
+	});
 
-  it("gets user logs with parameters", async () => {
-    const options = {
-      limit: 5,
-      startTime: Date.now() - 86400000, // 24 hours ago
-      endTime: Date.now(),
-    };
+	it("gets user logs", async () => {
+		const logs = await usersManager.getLogs(userId);
 
-    const logs = await usersManager.getLogs(userId, options);
+		expect(logs.logs).toBeInstanceOf(Array);
+		expect(typeof logs.totalResults).toBe("number");
+		expect(logs.queryTimeRange).toBeDefined();
+		expect(typeof logs.queryTimeRange.startTime).toBe("number");
+		expect(typeof logs.queryTimeRange.endTime).toBe("number");
+	});
 
-    expect(logs.logs).toBeInstanceOf(Array);
-    expect(logs.logs.length).toBeLessThanOrEqual(5);
-  });
+	it("gets user logs with parameters", async () => {
+		const options = {
+			limit: 5,
+			startTime: Date.now() - 86400000, // 24 hours ago
+			endTime: Date.now(),
+		};
 
-  it("logs out all sessions", async () => {
-    const result = await usersManager.logoutAllSessions(userId);
+		const logs = await usersManager.getLogs(userId, options);
 
-    expect(result.message).toBeDefined();
-    expect(typeof result.message).toBe("string");
-  });
+		expect(logs.logs).toBeInstanceOf(Array);
+		expect(logs.logs.length).toBeLessThanOrEqual(5);
+	});
 
-  it("handles invalid user ID", async () => {
-    await expect(usersManager.getOne("invalid-user-id")).rejects.toThrow();
-  });
+	it("logs out all sessions", async () => {
+		const result = await usersManager.logoutAllSessions(userId);
+
+		expect(result.message).toBeDefined();
+		expect(typeof result.message).toBe("string");
+	});
+
+	it("handles invalid user ID", async () => {
+		await expect(usersManager.getOne("invalid-user-id")).rejects.toThrow();
+	});
 });
