@@ -3,113 +3,111 @@ import { KeysManager } from "./KeysManager";
 import { KeyRequest } from "../types/keys";
 
 describe("KeysManager", () => {
-  let keysManager: KeysManager;
-  const createdKeys: string[] = []; // Track keys for cleanup
+	let keysManager: KeysManager;
+	const createdKeys: string[] = []; // Track keys for cleanup
 
-  beforeAll(() => {
-    const apiKey = process.env.SIGNALOID_USER_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
-    }
+	beforeAll(() => {
+		const apiKey = process.env.SIGNALOID_USER_API_KEY;
+		if (!apiKey) {
+			throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
+		}
 
-    const sdk = createClient({ method: "apiKey", key: apiKey });
-    keysManager = sdk.keys;
-  });
+		const sdk = createClient({ method: "apiKey", key: apiKey });
+		keysManager = sdk.keys;
+	});
 
-  afterAll(async () => {
-    // Clean up any keys created during tests
-    for (const keyId of createdKeys) {
-      try {
-        await keysManager.delete(keyId);
-      } catch (error) {
-        console.warn(`Failed to cleanup key ${keyId}:`, error);
-      }
-    }
-    createdKeys.length = 0; // Clear the array
-  });
+	afterAll(async () => {
+		// Clean up any keys created during tests
+		for (const keyId of createdKeys) {
+			try {
+				await keysManager.delete(keyId);
+			} catch (error) {
+				console.warn(`Failed to cleanup key ${keyId}:`, error);
+			}
+		}
+		createdKeys.length = 0; // Clear the array
+	});
 
-  describe("create", () => {
-    it("creates a key successfully", async () => {
-      const payload: KeyRequest = {
-        Name: "Test Key",
-        ValidUntil: null,
-      };
+	describe("create", () => {
+		it("creates a key successfully", async () => {
+			const payload: KeyRequest = {
+				Name: "Test Key",
+				ValidUntil: null,
+			};
 
-      const key = await keysManager.create(payload);
-      createdKeys.push(key.KeyID); // Track for cleanup
+			const key = await keysManager.create(payload);
+			createdKeys.push(key.KeyID); // Track for cleanup
 
-      expect(key.KeyID).toBeDefined();
-      expect(key.Key).toMatch(/^scce_[a-f0-9_]+$/);
-      expect(key.Name).toBe("Test Key");
-      expect(key.Object).toBe("Key");
-    });
+			expect(key.KeyID).toBeDefined();
+			expect(key.Key).toMatch(/^scce_[a-f0-9_]+$/);
+			expect(key.Name).toBe("Test Key");
+			expect(key.Object).toBe("Key");
+		});
 
-    it("creates a key with expiration", async () => {
-      const validUntil = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-      const payload: KeyRequest = {
-        Name: "Expiring Key",
-        ValidUntil: validUntil,
-      };
+		it("creates a key with expiration", async () => {
+			const validUntil = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+			const payload: KeyRequest = {
+				Name: "Expiring Key",
+				ValidUntil: validUntil,
+			};
 
-      const key = await keysManager.create(payload);
-      createdKeys.push(key.KeyID);
+			const key = await keysManager.create(payload);
+			createdKeys.push(key.KeyID);
 
-      expect(key.ValidUntil).toBe(validUntil);
-    });
-  });
+			expect(key.ValidUntil).toBe(validUntil);
+		});
+	});
 
-  describe("list", () => {
-    it("returns keys list with correct shape", async () => {
-      const response = await keysManager.list();
+	describe("list", () => {
+		it("returns keys list with correct shape", async () => {
+			const response = await keysManager.list();
 
-      expect(response.Keys).toBeInstanceOf(Array);
-      expect(typeof response.Count).toBe("number");
-      expect(response.UserID).toBeDefined();
+			expect(response.Keys).toBeInstanceOf(Array);
+			expect(typeof response.Count).toBe("number");
+			expect(response.UserID).toBeDefined();
 
-      if (response.Keys.length > 0) {
-        const key = response.Keys[0];
-        expect(key.Object).toBe("Key");
-        expect(key.KeyID).toBeDefined();
-        expect(key.Name).toBeDefined();
-        expect(key.Owner).toBeDefined();
-        expect(typeof key.CreatedAt).toBe("number");
-        expect(
-          key.ValidUntil === null || typeof key.ValidUntil === "number",
-        ).toBe(true);
-        // Key secret should NOT be in list response
-        expect(key.Key).toBeUndefined();
-        // OrganizationID and DedicatedInstanceName are optional per OpenAPI
-        if (key.OrganizationID !== undefined) {
-          expect(typeof key.OrganizationID).toBe("string");
-        }
-        if (key.DedicatedInstanceName !== undefined) {
-          expect(typeof key.DedicatedInstanceName).toBe("string");
-        }
-      }
-    });
-  });
+			if (response.Keys.length > 0) {
+				const key = response.Keys[0];
+				expect(key.Object).toBe("Key");
+				expect(key.KeyID).toBeDefined();
+				expect(key.Name).toBeDefined();
+				expect(key.Owner).toBeDefined();
+				expect(typeof key.CreatedAt).toBe("number");
+				expect(key.ValidUntil === null || typeof key.ValidUntil === "number").toBe(true);
+				// Key secret should NOT be in list response
+				expect(key.Key).toBeUndefined();
+				// OrganizationID and DedicatedInstanceName are optional per OpenAPI
+				if (key.OrganizationID !== undefined) {
+					expect(typeof key.OrganizationID).toBe("string");
+				}
+				if (key.DedicatedInstanceName !== undefined) {
+					expect(typeof key.DedicatedInstanceName).toBe("string");
+				}
+			}
+		});
+	});
 
-  describe("delete", () => {
-    it("deletes a key", async () => {
-      // Create key to delete
-      const key = await keysManager.create({
-        Name: "Key to Delete",
-        ValidUntil: null,
-      });
+	describe("delete", () => {
+		it("deletes a key", async () => {
+			// Create key to delete
+			const key = await keysManager.create({
+				Name: "Key to Delete",
+				ValidUntil: null,
+			});
 
-      // Delete it
-      const result = await keysManager.delete(key.KeyID);
+			// Delete it
+			const result = await keysManager.delete(key.KeyID);
 
-      expect(result.message).toBe("OK");
+			expect(result.message).toBe("OK");
 
-      // Verify it's gone
-      const keys = await keysManager.list();
-      const deletedKey = keys.Keys?.find((k) => k.KeyID === key.KeyID);
-      expect(deletedKey).toBeUndefined();
-    });
+			// Verify it's gone
+			const keys = await keysManager.list();
+			const deletedKey = keys.Keys?.find((k) => k.KeyID === key.KeyID);
+			expect(deletedKey).toBeUndefined();
+		});
 
-    it("throws error for non-existent key", async () => {
-      await expect(keysManager.delete("invalid-key-id")).rejects.toThrow();
-    });
-  });
+		it("throws error for non-existent key", async () => {
+			await expect(keysManager.delete("invalid-key-id")).rejects.toThrow();
+		});
+	});
 });

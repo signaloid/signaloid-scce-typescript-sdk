@@ -3,79 +3,72 @@ import { GitHubManager } from "./GitHubManager";
 import { GitHubIntegrationRequest } from "../types/github";
 
 describe("GitHubManager", () => {
-  let githubManager: GitHubManager;
-  let userId: string;
+	let githubManager: GitHubManager;
+	let userId: string;
 
-  beforeAll(() => {
-    const apiKey = process.env.SIGNALOID_USER_API_KEY;
-    const userIdEnv = process.env.SIGNALOID_USER_ID;
+	beforeAll(() => {
+		const apiKey = process.env.SIGNALOID_USER_API_KEY;
+		const userIdEnv = process.env.SIGNALOID_USER_ID;
 
-    if (!apiKey) {
-      throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
-    }
-    if (!userIdEnv) {
-      throw new Error("Missing SIGNALOID_USER_ID environment variable");
-    }
+		if (!apiKey) {
+			throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
+		}
+		if (!userIdEnv) {
+			throw new Error("Missing SIGNALOID_USER_ID environment variable");
+		}
 
-    const sdk = createClient({ method: "apiKey", key: apiKey });
-    githubManager = sdk.github;
-    userId = userIdEnv;
-  });
+		const sdk = createClient({ method: "apiKey", key: apiKey });
+		githubManager = sdk.github;
+		userId = userIdEnv;
+	});
 
-  it("gets integration (may not exist)", async () => {
-    try {
-      const integration = await githubManager.getIntegration(userId);
-      expect(integration.GithubUsername).toBeDefined();
-      expect(typeof integration.GithubUsername).toBe("string");
-    } catch (error: any) {
-      // Integration might not exist - this is expected
-      expect(error.message).toMatch(
-        /No GitHub integration found|404|not found/i,
-      );
-    }
-  });
+	it("gets integration (may not exist)", async () => {
+		try {
+			const integration = await githubManager.getIntegration(userId);
+			expect(integration.GithubUsername).toBeDefined();
+			expect(typeof integration.GithubUsername).toBe("string");
+		} catch (error: any) {
+			// Integration might not exist - this is expected
+			expect(error.message).toMatch(/No GitHub integration found|404|not found/i);
+		}
+	});
 
-  it("attempts to create integration", async () => {
-    const payload: GitHubIntegrationRequest = {
-      GithubAuthCode: "test_auth_code_123456789",
-    };
+	it("attempts to create integration", async () => {
+		const payload: GitHubIntegrationRequest = {
+			GithubAuthCode: "test_auth_code_123456789",
+		};
 
-    try {
-      const result = await githubManager.createOrUpdateIntegration(
-        userId,
-        payload,
-      );
-      expect(result.Message).toBeDefined();
-    } catch (error: any) {
-      // Expected to fail due to auth code requirement
-      expect(error.message).toMatch(
-        /GitHub auth code not provided|BadRequest|incorrect or expired/i,
-      );
-    }
-  });
+		try {
+			const result = await githubManager.createOrUpdateIntegration(userId, payload);
+			expect(result.Message).toBeDefined();
+		} catch (error: any) {
+			// Expected to fail due to auth code requirement
+			expect(error.message).toMatch(/GitHub auth code not provided|BadRequest|incorrect or expired/i);
+		}
+	});
 
-  it("deletes integration", async () => {
-    const result = await githubManager.deleteIntegration(userId);
+	it("deletes integration", async () => {
+		const result = await githubManager.deleteIntegration(userId);
 
-    expect(result.Message).toBeDefined();
-    expect(typeof result.Message).toBe("string");
-  });
+		expect(result.Message).toBeDefined();
+		expect(typeof result.Message).toBe("string");
+	});
 
-  it("handles proxy request", async () => {
-    try {
-      const response = await githubManager.proxyRequest("user", "GET");
-      expect(response).toBeDefined();
-    } catch (error) {
-      // Expected to fail without proper GitHub authentication
-      expect(error).toBeDefined();
-    }
-  });
+	it("handles proxy request", async () => {
+		try {
+			const response = await githubManager.proxyRequest("user", "GET");
+			expect(response).toBeDefined();
+		} catch (error) {
+			// Expected to fail without proper GitHub authentication
+			expect(error).toBeDefined();
+		}
+	});
 
-  it("handles invalid user ID", async () => {
-    try {
-      await githubManager.getIntegration("invalid-user-id");
-    } catch (error) {
-      expect(error).toBeDefined();
-    }
-  });
+	it("handles invalid user ID", async () => {
+		try {
+			await githubManager.getIntegration("invalid-user-id");
+		} catch (error) {
+			expect(error).toBeDefined();
+		}
+	});
 });

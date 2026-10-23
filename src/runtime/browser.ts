@@ -1,3 +1,3 @@
 export function setupRuntime() {
-  // Browser needs no special setup
+	// Browser needs no special setup
 }

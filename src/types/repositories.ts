@@ -2,81 +2,83 @@ import { TraceVariable, DataSource } from ".";
 import { BuildDetails } from "./builds";
 
 export type RepositoryRequest = {
-  RemoteURL: string;
-  Commit: string;
-  Branch: string;
-  BuildDirectory: string;
-  Arguments?: string;
-  Core?: string;
-  DataSources?: DataSource[];
-  TraceVariables?: TraceVariable[];
+	RemoteURL: string;
+	Commit: string;
+	Branch: string;
+	BuildDirectory: string;
+	Arguments?: string;
+	/** Omit it to use the lowest-precision `C0Pro` default Core. */
+	Core?: string;
+	DataSources?: DataSource[];
+	TraceVariables?: TraceVariable[];
 };
 
 export type RepositoryPatchRequest = {
-  RemoteURL?: string;
-  Commit?: string;
-  Branch?: string;
-  BuildDirectory?: string;
-  Arguments?: string;
-  Core?: string;
-  DataSources?: DataSource[];
-  TraceVariables?: TraceVariable[];
+	RemoteURL?: string;
+	Commit?: string;
+	Branch?: string;
+	BuildDirectory?: string;
+	Arguments?: string;
+	Core?: string;
+	DataSources?: DataSource[];
+	TraceVariables?: TraceVariable[];
 };
 
-export type RepositoryPatchRemovableField = keyof RepositoryPatchRequest;
+// the only fields the API removes; with ?remove= the request body is ignored
+export type RepositoryPatchRemovableField = "DataSources" | "Core" | "TraceVariables";
 
 export type Override = {
-  Variable: string;
-  Value: string;
-  ValueIndex?: number;
+	Variable: string;
+	Value: string;
+	ValueIndex?: number;
 };
 
 export type PostKeysRequest = {
-  InputKeys: string[];
-  Overrides?: Override[];
+	InputKeys: string[];
+	Overrides?: Override[];
 };
 
 export type RepositoryDetails = {
-  Object: "Repository";
-  RepositoryID: string;
-  Owner: string;
-  RemoteURL: string;
-  Commit: string;
-  Branch: string;
-  BuildDirectory: string;
-  Arguments: string;
-  Core: string;
-  DataSources: DataSource[];
-  TraceVariables: TraceVariable[];
-  CreatedAt: number;
-  UpdatedAt: number;
+	Object: "Repository";
+	RepositoryID: string;
+	Owner: string;
+	RemoteURL: string;
+	Commit: string;
+	Branch: string;
+	BuildDirectory: string;
+	Arguments: string;
+	Core: string;
+	DataSources: DataSource[];
+	TraceVariables: TraceVariable[];
+	CreatedAt: number;
+	UpdatedAt: number;
 };
 
 export type ListRepositoriesResponse = {
-  UserID: string;
-  Repositories: RepositoryDetails[];
-  Count: number;
-  ContinuationKey?: string;
+	UserID: string;
+	Repositories: RepositoryDetails[];
+	Count: number;
+	ContinuationKey?: string;
 };
 
 export type GetRepositoryBuildsQueryParams = {
-  startKey?: string;
-  from?: string;
-  to?: string;
+	startKey?: string;
+	from?: string;
+	to?: string;
 };
 
 export type ListBuildsByRepositoryResponse = {
-  RepositoryID: string;
-  Builds: BuildDetails[];
-  Count: number;
-  ContinuationKey?: string;
+	RepositoryID: string;
+	Builds: BuildDetails[];
+	Count: number;
+	ContinuationKey?: string;
 };
 
 export type LookupRepositoryRequest = {
-  RemoteURL: string;
-  Branch: string;
+	RemoteURL: string;
+	Branch: string;
 };
 
 export type LookupRepositoryResponse = {
-  RepositoryID: string;
+	RepositoryID: string;
 };

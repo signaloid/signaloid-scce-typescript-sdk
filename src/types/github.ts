@@ -1,11 +1,11 @@
 export type GitHubIntegration = {
-  GithubUsername: string;
+	GithubUsername: string;
 };
 
 export type GitHubIntegrationRequest = {
-  GithubAuthCode: string;
+	GithubAuthCode: string;
 };
 
 export type GitHubIntegrationCreateResponse = {
-  Message: string;
+	Message: string;
 };
