@@ -17,7 +17,7 @@ describe("OrganizationsManager", () => {
 		try {
 			currentUserID = (await sdk.users.me()).UserID;
 		} catch {
-			/* currentUserID stays undefined; afterAll logs a warning */
+			/* currentUserID stays undefined; `afterAll` logs a warning */
 		}
 	});
 

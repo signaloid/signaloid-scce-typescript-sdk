@@ -1,6 +1,6 @@
 {
 	"name": "@signaloid/scce-sdk",
-	"version": "3.0.0",
+	"version": "4.0.0",
 	"description": "Signaloid Cloud Compute Engine API SDK",
 	"author": "Signaloid <developer-support@signaloid.com>",
 	"license": "MIT",
@@ -53,7 +53,7 @@
 		"test": "dotenv -e .env -- jest",
 		"test:integration": "dotenv -e .env -- jest --runInBand",
 		"test:ci": "jest --ci --coverage --watchAll=false --passWithNoTests",
-		"test:unit": "jest --ci src/client/SignaloidClient.errors.test.ts src/utils src/config src/files/FilesManager.encoding.test.ts",
+		"test:unit": "jest --ci src/client/SignaloidClient.errors.test.ts src/utils src/config src/files/FilesManager.encoding.test.ts src/realtime",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"prepublishOnly": "npm run build"

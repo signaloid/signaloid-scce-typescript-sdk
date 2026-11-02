@@ -1,5 +1,16 @@
 import { createClient } from "../client/createClient";
+import type { DependencyTracking, Microarchitecture } from "../types/cores";
 import { UsersManager } from "./UsersManager";
+
+// The modes the API accepts per microarchitecture on POST and PATCH /cores.
+const SUPPORTED_DEPENDENCY_TRACKING: Record<Microarchitecture, DependencyTracking[]> = {
+	Athens: ["None", "Basic"],
+	Rome: ["None", "Basic"],
+	Jupiter: ["Advanced"],
+	Bypass: ["None"],
+	Reference: ["None"],
+	Native: ["None"],
+};
 
 describe("UsersManager", () => {
 	let usersManager: UsersManager;
@@ -44,6 +55,13 @@ describe("UsersManager", () => {
 		expect(user.CoreClasses.length).toBeGreaterThan(0);
 		expect(user.CoreClasses.map((coreClass) => coreClass.Name)).not.toContain("C0");
 		expect(user.Microarchitectures.length).toBeGreaterThan(0);
+		for (const microarchitecture of user.Microarchitectures) {
+			// The order of the modes carries no meaning, so compare them sorted.
+			expect([...microarchitecture.DependencyTracking].sort()).toEqual(
+				[...SUPPORTED_DEPENDENCY_TRACKING[microarchitecture.Name]].sort(),
+			);
+			expect(microarchitecture).not.toHaveProperty("CorrelationTracking");
+		}
 		expect(user.FieldConstraints.Precision.Minimum).toBe(4);
 	});
 

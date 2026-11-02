@@ -13,8 +13,21 @@ export type OverrideEndpoints = {
 	publicHost?: string;
 };
 
-export type ClientOptions = {
+export type ClientOptions = RealtimeClientOptions & {
 	overrideEndpoints?: OverrideEndpoints;
+};
+
+export type RealtimeState = "idle" | "connecting" | "open" | "reconnecting" | "closed";
+
+export type RealtimeStateChange = {
+	state: RealtimeState;
+	previous: RealtimeState;
+	attempt: number;
+	error?: unknown;
+};
+
+export type RealtimeClientOptions = {
+	maxReconnectAttempts?: number;
 };
 
 export type TraceVariable = {
@@ -48,7 +61,6 @@ export type * from "./health";
 export type * from "./buckets";
 export type * from "./drives";
 export type * from "./keys";
-export type * from "./things";
 export type * from "./users";
 export type * from "./subscriptions";
 export type * from "./github";

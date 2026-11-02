@@ -1,4 +1,5 @@
 import { TraceVariable, DataSource } from ".";
+import type { DependencyTracking, LegacyCorrelationTracking, StoredMicroarchitecture } from "./cores";
 
 export type BuildStatus =
 	| "Accepted"
@@ -13,6 +14,7 @@ export type CreateSourceBuildRequest = {
 	Code: string;
 	Language: "C" | "C++" | "Fortran";
 	CoreID?: string;
+	/** Must be empty for the `r7i` Core class. */
 	TraceVariables?: TraceVariable[];
 	/** Must be empty for the C0-microSD, C0-microSD-plus and C0-SD Core classes. */
 	DataSources?: DataSource[];
@@ -27,6 +29,7 @@ export type CreateSourceBuildResponse = {
 
 export type CreateRepositoryBuildRequest = {
 	CoreID?: string;
+	/** Must be empty for the `r7i` Core class. */
 	TraceVariables?: TraceVariable[];
 	/** Must be empty for the C0-microSD, C0-microSD-plus and C0-SD Core classes. */
 	DataSources?: DataSource[];
@@ -98,8 +101,11 @@ export type BuildCoreSpecs = {
 	Precision: number;
 	/** In bytes. Fixed per Core class and assigned by the server. */
 	MemorySize: number;
-	Microarchitecture: string;
-	CorrelationTracking: string;
+	Microarchitecture: StoredMicroarchitecture;
+	/** Set on builds accepted since the API renamed `CorrelationTracking` to `DependencyTracking`. */
+	DependencyTracking?: DependencyTracking;
+	/** @deprecated Set only on older builds, as the record of what they ran with. */
+	CorrelationTracking?: LegacyCorrelationTracking;
 };
 
 export type BuildStats = {

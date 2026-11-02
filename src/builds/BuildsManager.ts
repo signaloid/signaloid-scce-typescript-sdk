@@ -34,6 +34,7 @@ export class BuildsManager {
 		private readonly users: UsersManager,
 	) {}
 
+	/** `discoverVars` must not be `true` for the `r7i` Core class: the API refuses it with 400. */
 	public async createFromSourceCode(
 		payload: CreateSourceBuildRequest,
 		discoverVars?: boolean,
@@ -43,6 +44,10 @@ export class BuildsManager {
 		return response.data;
 	}
 
+	/**
+	 * `discoverVars` must not be `true` for the `r7i` Core class: the API refuses it with 400.
+	 * For that class, the `TraceVariables` stored on the Repository are ignored.
+	 */
 	public async createFromRepository(
 		repositoryID: string,
 		payload?: CreateRepositoryBuildRequest,

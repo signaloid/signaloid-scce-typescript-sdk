@@ -149,7 +149,7 @@ describe("BucketsManager", () => {
 
 			expect(result.message).toBe("OK");
 
-			// Verify it's gone
+			// Verify it is gone
 			await expect(bucketsManager.getOne(bucket.BucketID)).rejects.toThrow();
 		});
 

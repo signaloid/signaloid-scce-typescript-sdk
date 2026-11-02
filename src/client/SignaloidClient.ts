@@ -14,7 +14,6 @@ import { SamplesManager } from "../samples/SamplesManager";
 import { FilesManager } from "../files/FilesManager";
 import { PlottingManager } from "../plotting/PlottingManager";
 import { DrivesManager } from "../drives/DrivesManager";
-import { ThingsManager } from "../things/ThingsManager";
 import { KeysManager } from "../keys/KeysManager";
 import { UsersManager } from "../users/UsersManager";
 import { SubscriptionsManager } from "../subscriptions/SubscriptionsManager";
@@ -65,7 +64,6 @@ export class SignaloidClient {
 	public files: FilesManager;
 	public plotting: PlottingManager;
 	public drives: DrivesManager;
-	public things: ThingsManager;
 	public keys: KeysManager;
 	public users: UsersManager;
 	public subscriptions: SubscriptionsManager;
@@ -143,7 +141,8 @@ export class SignaloidClient {
 				}
 				if (err.response) {
 					const { status, data } = err.response;
-					const body: { message?: string; error?: unknown } = (typeof data === "object" && data) || {};
+					const body: { message?: string; error?: unknown } =
+						(typeof data === "object" && data) || {};
 					const message = body.message || err.message;
 
 					// For 5xx, the precise code is on err.status
@@ -154,7 +153,9 @@ export class SignaloidClient {
 					const errorType = typeof body.error === "string" ? body.error : undefined;
 					const retryAfter = parseRetryAfter(err.response.headers?.["retry-after"]);
 
-					return Promise.reject(new SdkError(code, message, body, status, { errorType, retryAfter }));
+					return Promise.reject(
+						new SdkError(code, message, body, status, { errorType, retryAfter }),
+					);
 				}
 
 				// no response (network / timeout / other)
@@ -164,9 +165,20 @@ export class SignaloidClient {
 
 		// Initialize managers
 		this.users = new UsersManager(signaloidApiClient);
-		this.realtime = new RealtimeClient(this.auth, endpoints.websocket, endpoints.host);
-		this.publicRealtime = new RealtimeClient(this.auth, endpoints.publicWebsocket, endpoints.publicHost);
-		this.builds = new BuildsManager(signaloidApiClient, this.realtime, this.publicRealtime, this.auth, this.users);
+		this.realtime = new RealtimeClient(this.auth, endpoints.websocket, endpoints.host, clientOptions);
+		this.publicRealtime = new RealtimeClient(
+			this.auth,
+			endpoints.publicWebsocket,
+			endpoints.publicHost,
+			clientOptions,
+		);
+		this.builds = new BuildsManager(
+			signaloidApiClient,
+			this.realtime,
+			this.publicRealtime,
+			this.auth,
+			this.users,
+		);
 		this.repositories = new RepositoriesManager(signaloidApiClient);
 		this.cores = new CoresManager(signaloidApiClient);
 		this.buckets = new BucketsManager(signaloidApiClient);
@@ -174,7 +186,6 @@ export class SignaloidClient {
 		this.files = new FilesManager(signaloidApiClient);
 		this.plotting = new PlottingManager(signaloidApiClient);
 		this.drives = new DrivesManager(signaloidApiClient);
-		this.things = new ThingsManager(signaloidApiClient);
 		this.keys = new KeysManager(signaloidApiClient);
 		this.subscriptions = new SubscriptionsManager(signaloidApiClient);
 		this.github = new GitHubManager(signaloidApiClient);
