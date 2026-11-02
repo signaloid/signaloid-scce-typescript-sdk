@@ -100,7 +100,7 @@ describe("KeysManager", () => {
 
 			expect(result.message).toBe("OK");
 
-			// Verify it's gone
+			// Verify it is gone
 			const keys = await keysManager.list();
 			const deletedKey = keys.Keys?.find((k) => k.KeyID === key.KeyID);
 			expect(deletedKey).toBeUndefined();

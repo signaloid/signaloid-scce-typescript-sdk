@@ -32,7 +32,7 @@ let current: Environment | null = null;
 const RUNTIME_IS_BROWSER = typeof window !== "undefined" && typeof (window as any).document !== "undefined";
 const IS_BROWSER = typeof __BROWSER__ !== "undefined" ? __BROWSER__ : RUNTIME_IS_BROWSER;
 
-// Safe access to import.meta.env that won't break Jest/CJS
+// Safe access to import.meta.env that will not break Jest/CJS
 function safeImportMetaEnv(key: string): string | undefined {
 	try {
 		// eslint-disable-next-line no-eval
@@ -60,7 +60,7 @@ function detectEnvName(): EnvName {
 	return BUILT_DEFAULT_BASE_ENV;
 }
 
-// Only include defined values so we don't overwrite with undefined
+// Only include defined values so we do not overwrite with undefined
 function collectEnvOverrides(): Partial<Environment> {
 	const o: Partial<Environment> = {};
 	const put = (k: keyof Environment, v?: string) => {

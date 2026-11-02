@@ -10,6 +10,7 @@ export type RepositoryRequest = {
 	/** Omit it to use the lowest-precision `C0Pro` default Core. */
 	Core?: string;
 	DataSources?: DataSource[];
+	/** Ignored by builds on an `r7i` Core, which cannot trace variables. */
 	TraceVariables?: TraceVariable[];
 };
 
@@ -21,6 +22,7 @@ export type RepositoryPatchRequest = {
 	Arguments?: string;
 	Core?: string;
 	DataSources?: DataSource[];
+	/** Ignored by builds on an `r7i` Core, which cannot trace variables. */
 	TraceVariables?: TraceVariable[];
 };
 

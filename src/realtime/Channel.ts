@@ -2,6 +2,7 @@ import { RealtimeClient } from "./RealtimeClient";
 import { sanitizeChannelName } from "../utils/sanitizeChannelName";
 import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
+import { unrefTimer } from "../utils/timers";
 
 type EventType = "message" | "error" | "subscribe_success" | "unsubscribe_success";
 type Callback = (msg: any) => void;
@@ -82,6 +83,7 @@ export class Channel {
 	private subscribers: Set<SubscriptionClient>;
 	private enabled: boolean = false;
 	private transition: null | "enabling" | "disabling" = null;
+	private activating = false;
 	private unsubscribeTimeout: any = null;
 
 	/**
@@ -121,6 +123,9 @@ export class Channel {
 			this.transition = null;
 			return;
 		}
+		if (eventName === "error") {
+			this.markDisconnected();
+		}
 		for (let subscriber of this.subscribers) {
 			subscriber.emit(eventName, data);
 		}
@@ -150,13 +155,12 @@ export class Channel {
 		if (this.subscribers.size == 0 && this.client.isConnected()) {
 			// schedule deactivate in 30 secs
 			// We must have come from at least one subscription, no scheduled deactivate for sure
-			this.unsubscribeTimeout = setTimeout(() => {
-				this.unsubscribeTimeout = null;
-				this.deactivate();
-			}, SubscriptionKeepAliveSec * 1000);
-			try {
-				this.unsubscribeTimeout.unref();
-			} catch (_e) {}
+			this.unsubscribeTimeout = unrefTimer(
+				setTimeout(() => {
+					this.unsubscribeTimeout = null;
+					this.deactivate();
+				}, SubscriptionKeepAliveSec * 1000),
+			);
 		}
 	}
 
@@ -174,21 +178,57 @@ export class Channel {
 		// Other cases: not enabled, disabling, conn closed -> re-enable
 		this.enabled = false;
 		this.transition = "enabling";
+		this.activating = true;
 
-		// Ensure connection is up
-		await this.client.connect();
+		try {
+			// Ensure connection is up
+			await this.client.connect();
 
-		// Let's reestablish subscription to server
-		const payload = {
-			id: this.id,
-			type: "subscribe",
-			channel: this.name,
-			authorization: {
-				host: this.client["host"],
-				authorization: await this.client["auth"].getAuthorizationHeader(),
-			},
-		};
-		this.client.send(payload);
+			// Reestablish the subscription to the server
+			this.client.send(this.subscribePayload(await this.client["auth"].getAuthorizationHeader()));
+		} catch (error) {
+			this.transition = null;
+			// The reconnect skipped this channel while it was activating, so nothing else subscribes it again.
+			if (this.subscribers.size > 0 && this.client.isConnected()) {
+				this.emit("error", error);
+			}
+			throw error;
+		} finally {
+			this.activating = false;
+		}
+	}
+
+	/**
+	 * Whether this channel has to send its subscription again on a new connection.
+	 */
+	public needsResubscribe(): boolean {
+		return this.subscribers.size > 0 && !this.activating && !this.enabled && this.transition === null;
+	}
+
+	/**
+	 * Sends the subscription again on a new connection.
+	 * A failed send means the connection dropped again, and the next reconnect retries it.
+	 */
+	public resubscribe(authorization: string): void {
+		if (!this.needsResubscribe()) {
+			return;
+		}
+		this.enabled = false;
+		this.transition = "enabling";
+
+		try {
+			this.client.send(this.subscribePayload(authorization));
+		} catch {
+			this.transition = null;
+		}
+	}
+
+	/**
+	 * Marks the remote subscription as gone after the connection closed.
+	 */
+	public markDisconnected() {
+		this.enabled = false;
+		this.transition = null;
 	}
 
 	/**
@@ -213,6 +253,18 @@ export class Channel {
 		} catch (error) {
 			// Do nothing
 		}
+	}
+
+	private subscribePayload(authorization: string) {
+		return {
+			id: this.id,
+			type: "subscribe",
+			channel: this.name,
+			authorization: {
+				host: this.client["host"],
+				authorization,
+			},
+		};
 	}
 
 	// if stream unsubscribe was scheduled, cancel it

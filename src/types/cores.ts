@@ -1,8 +1,19 @@
 /**
- * Core classes that `POST /cores` and `PATCH /cores/{CoreID}` accept. Which of these an
- * account may use is tier-gated: see `CoreClasses` on `UserDetails`.
+ * Core classes that `POST /cores` and `PATCH /cores/{CoreID}` accept. Apart from the
+ * `NativeCoreClass` ones, which of these an account may use is tier-gated: see `CoreClasses`
+ * on `UserDetails`.
  */
-export type CoreClass = "C0Pro" | "C0-microSD" | "C0-microSD-plus" | "C0-SD";
+export type CoreClass = "C0Pro" | NativeCoreClass | "C0-microSD" | "C0-microSD-plus" | "C0-SD";
+
+/**
+ * Core classes that build with a stock host toolchain and run without uncertainty tracking.
+ * Their Cores have a fixed `Precision` of 0 and `DependencyTracking` of `None`, accept only the
+ * `Native` microarchitecture, and their builds may not discover or trace variables. Their Tasks produce no Ux values. Every tier may use them.
+ */
+export type NativeCoreClass = "r7i";
+
+/** Microarchitectures valid only with a `NativeCoreClass`. */
+export type NativeMicroarchitecture = "Native";
 
 /**
  * Core classes a stored Core may carry. The retired `C0` still reads back and builds, but the
@@ -11,14 +22,28 @@ export type CoreClass = "C0Pro" | "C0-microSD" | "C0-microSD-plus" | "C0-SD";
 export type StoredCoreClass = CoreClass | "C0";
 
 /**
- * The C0-microSD, C0-microSD-plus and C0-SD classes support neither `Jupiter` nor `Reference`.
- * Which microarchitectures an account may use is tier-gated: see `Microarchitectures` on
- * `UserDetails`.
+ * The C0-microSD, C0-microSD-plus and C0-SD classes support only `Athens`, `Rome` and `Bypass`.
+ * The `r7i` class supports only `Native`, and `Native` is valid with no other
+ * class. Which microarchitectures an account may use is tier-gated: see `Microarchitectures`
+ * and `CoreClasses` on `UserDetails`.
  */
-export type Microarchitecture = "Athens" | "Atlas" | "Bypass" | "Reference" | "Jupiter";
+export type Microarchitecture = "Athens" | "Rome" | "Bypass" | "Reference" | "Jupiter" | NativeMicroarchitecture;
 
-/** `Jupiter`, `Bypass` and `Reference` accept `Disable` only. */
-export type CorrelationTracking = "Autocorrelation" | "Disable";
+/**
+ * Microarchitectures a stored Core or build may carry. `Atlas` is retired: the API refuses it on
+ * create and update, but Cores and builds made before `Rome` replaced it can still report it.
+ */
+export type StoredMicroarchitecture = Microarchitecture | "Atlas";
+
+/**
+ * `Athens` and `Rome` accept `None` or `Basic`, `Jupiter` accepts `Advanced` only, and
+ * `Bypass`, `Reference` and `Native` accept `None` only. The supported modes per microarchitecture are
+ * also in `Microarchitectures` on `UserDetails`.
+ */
+export type DependencyTracking = "None" | "Basic" | "Advanced";
+
+/** The modes of `CorrelationTracking`, which the API renamed to `DependencyTracking`. */
+export type LegacyCorrelationTracking = "Autocorrelation" | "Disable";
 
 export type CoreDetails = {
 	Object: "Core";
@@ -28,23 +53,58 @@ export type CoreDetails = {
 	UpdatedAt: number;
 	Name: string;
 	Class: StoredCoreClass;
-	Microarchitecture: Microarchitecture;
-	CorrelationTracking: CorrelationTracking;
+	Microarchitecture: StoredMicroarchitecture;
+	/** Set on Cores created or updated since the API renamed `CorrelationTracking` to `DependencyTracking`. */
+	DependencyTracking?: DependencyTracking;
+	/** @deprecated Set only on older Cores. Update the Core with a `DependencyTracking` mode to migrate it. */
+	CorrelationTracking?: LegacyCorrelationTracking;
 	/** In bytes. Fixed per Core class and assigned by the server. */
 	MemorySize: number;
+	/** Always 0 for a `NativeCoreClass` and for the `Bypass` microarchitecture. */
 	Precision: number;
 };
 
-export type CoreRequest = {
+type CoreRequestBase = {
 	Name: string;
-	Class: CoreClass;
-	/** A power of two for `Athens` and `Jupiter`. Tier ceilings are in `UserDetails.Allowance`. */
-	Precision: number;
 	/** @deprecated Ignored: the server assigns `MemorySize` from the Core class. */
 	MemorySize?: number;
-	Microarchitecture: Microarchitecture;
-	CorrelationTracking: CorrelationTracking;
 };
+
+/** A Core of a class that tracks uncertainty, on a microarchitecture that takes a `Precision`. */
+export type UncertainCoreRequest = CoreRequestBase & {
+	Class: Exclude<CoreClass, NativeCoreClass>;
+	/**
+	 * A power of two from 4 to 8192 for `Athens`, `Rome` and `Jupiter`, and from 4 to 1000000 for
+	 * `Reference`. Tier ceilings are in `UserDetails.Allowance`.
+	 */
+	Precision: number;
+	Microarchitecture: Exclude<Microarchitecture, NativeMicroarchitecture | "Bypass">;
+	DependencyTracking: DependencyTracking;
+};
+
+/**
+ * A Core on the `Bypass` microarchitecture, which ignores `Precision`. The API fills in a
+ * `Precision` of 0 when it is left out, and refuses any other value with 400.
+ */
+export type BypassCoreRequest = CoreRequestBase & {
+	Class: Exclude<CoreClass, NativeCoreClass>;
+	Precision?: 0;
+	Microarchitecture: "Bypass";
+	DependencyTracking: "None";
+};
+
+/**
+ * A Core of a `NativeCoreClass`. The API fills in `Precision` and `DependencyTracking` when they
+ * are left out, and refuses any other value with 400.
+ */
+export type NativeCoreRequest = CoreRequestBase & {
+	Class: NativeCoreClass;
+	Precision?: 0;
+	Microarchitecture: NativeMicroarchitecture;
+	DependencyTracking?: "None";
+};
+
+export type CoreRequest = UncertainCoreRequest | BypassCoreRequest | NativeCoreRequest;
 
 /** `PATCH /cores/{CoreID}` takes the full Core body, with the same rules as `CoreRequest`. */
 export type CorePatchRequest = CoreRequest;

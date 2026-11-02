@@ -1,4 +1,4 @@
-import type { CoreClass, CorrelationTracking, Microarchitecture } from "./cores";
+import type { CoreClass, DependencyTracking, Microarchitecture } from "./cores";
 import type { SubscribableTier } from "./subscriptions";
 
 /** Subscription tiers an account or organization may be on. */
@@ -27,7 +27,7 @@ export type Allowance = {
 	PlotCount?: number;
 	RegistryStorageBytes?: number;
 	RepositoryCount?: number;
-	/** Highest `Precision` for the `Athens`, `Atlas` and `Jupiter` microarchitectures. */
+	/** Highest `Precision` for the `Athens`, `Rome` and `Jupiter` microarchitectures. */
 	MaxPrecisionBits: number;
 	/** Highest `Precision` for the `Reference` microarchitecture. */
 	MaxReferenceQuality: number;
@@ -47,12 +47,13 @@ export type MicroarchitectureCapability = {
 	DistributionTracking: boolean;
 	CustomPrecision: boolean;
 	PrecisionMustBePowerOfTwo: boolean;
-	CorrelationTracking: CorrelationTracking[];
+	DependencyTracking: DependencyTracking[];
 };
 
 /** Platform-wide bounds on the numeric Core fields, before any tier ceiling applies. */
 export type FieldConstraints = {
 	MemorySize: { Minimum: number; Maximum: number };
+	/** Applies where the caller picks `Precision`. A `NativeCoreClass` Core always has 0. */
 	Precision: { Minimum: number; Maximum: number };
 };
 

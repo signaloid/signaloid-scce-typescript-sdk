@@ -31,6 +31,10 @@ export class TasksManager {
 		private readonly users: UsersManager,
 	) {}
 
+	/**
+	 * The API refuses with 400 a Task on a build of the C0-microSD, C0-microSD-plus or C0-SD Core
+	 * classes. Run those builds on the matching Compute Module, after `builds.getBinary()`.
+	 */
 	public async createTask(
 		buildID: string,
 		payload: CreateTaskRequest,
