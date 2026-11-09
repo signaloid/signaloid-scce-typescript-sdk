@@ -1,23 +1,26 @@
 import { parseStatusEvent } from "./statusEvent";
 
-describe("parseStatusEvent", () => {
-	test("reads a build event from the data envelope", () => {
-		const msg = { data: { buildId: "bld_1", status: "Completed" } };
-		expect(parseStatusEvent(msg, ["buildId", "BuildID"])).toEqual({ id: "bld_1", status: "Completed" });
-	});
+const event = (Data: Record<string, unknown>) => ({ EventType: "build-status", Timestamp: "t", Data });
 
-	test("falls back to the alternative ID key and Status casing", () => {
-		const msg = { event: { BuildID: "bld_1", Status: "Stopped" } };
-		expect(parseStatusEvent(msg, ["buildId", "BuildID"])).toEqual({ id: "bld_1", status: "Stopped" });
+describe("parseStatusEvent", () => {
+	test("reads a build event", () => {
+		expect(parseStatusEvent(event({ BuildID: "bld_1", Status: "Completed" }), "BuildID")).toEqual({
+			id: "bld_1",
+			status: "Completed",
+		});
 	});
 
 	test("drops a status that is not a string", () => {
-		const msg = { buildId: "bld_1", status: { value: "Completed" } };
-		expect(parseStatusEvent(msg, ["buildId"]).status).toBeUndefined();
+		expect(
+			parseStatusEvent(event({ BuildID: "bld_1", Status: { value: "Completed" } }), "BuildID").status,
+		).toBeUndefined();
 	});
 
 	test("does not match a task event when looking for a build", () => {
-		const msg = { taskId: "tsk_1", status: "Completed" };
-		expect(parseStatusEvent(msg, ["buildId", "BuildID"]).id).toBeUndefined();
+		expect(parseStatusEvent(event({ TaskID: "tsk_1", Status: "Completed" }), "BuildID").id).toBeUndefined();
+	});
+
+	test("tolerates a missing event", () => {
+		expect(parseStatusEvent(undefined, "TaskID")).toEqual({ id: undefined, status: undefined });
 	});
 });

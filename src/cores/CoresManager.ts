@@ -1,20 +1,39 @@
 import { AxiosInstance } from "axios";
-import { CoreDetails, CorePatchRequest, CoreRequest, ListCoresQueryParams, ListCoresResponse } from "../types/cores";
+import {
+	CoreDetails,
+	CorePatchRequest,
+	CoreRequest,
+	ListAllCoresOptions,
+	ListCoresQueryParams,
+	ListCoresResponse,
+} from "../types/cores";
+import { paginationParams } from "../utils/listParams";
+import { listAllItems } from "../utils/paginate";
 
 export class CoresManager {
 	constructor(private readonly client: AxiosInstance) {}
 
+	/** One page of Cores. See `cursor` for the next one. */
 	public async list(options?: ListCoresQueryParams): Promise<ListCoresResponse> {
-		const params: Record<string, string> = {};
+		const params = paginationParams(options);
 		if (options?.default !== undefined) {
 			params.default = options.default.toString();
-		}
-		if (options?.startKey !== undefined) {
-			params.startKey = options.startKey;
 		}
 
 		const response = await this.client.get("/cores", { params });
 		return response.data;
+	}
+
+	/**
+	 * Every Core across all pages, read 100 per page unless `limit` says otherwise. Prefer it
+	 * with `default`, whose pages can be short or empty.
+	 */
+	public async listAll(options?: ListAllCoresOptions): Promise<CoreDetails[]> {
+		return listAllItems(
+			(query) => this.list(query),
+			options,
+			(page) => page.Cores,
+		);
 	}
 
 	public async getOne(coreID: string): Promise<CoreDetails> {

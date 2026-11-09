@@ -1,3 +1,5 @@
+import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
+
 export type KeyDetails = {
 	Object: "Key";
 	Key?: string;
@@ -18,7 +20,9 @@ export type KeyRequest = {
 	ValidUntil?: number | null;
 };
 
-export type ListKeysResponse = {
+export type ListKeysQueryParams = CursorQueryParams;
+
+export type ListKeysResponse = CursorPaginatedResponse & {
 	UserID: string;
 	Keys: KeyDetails[];
 	Count: number;

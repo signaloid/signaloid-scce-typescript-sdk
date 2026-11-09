@@ -22,12 +22,11 @@ export type Allowance = {
 	DataSourceCount?: number;
 	DynamicInstructionCount?: number;
 	ExecutionTimeInMillisecondsCount?: number;
-	GatewayCount?: number;
 	KeyCount?: number;
 	PlotCount?: number;
 	RegistryStorageBytes?: number;
 	RepositoryCount?: number;
-	/** Highest `Precision` for the `Athens`, `Rome` and `Jupiter` microarchitectures. */
+	/** Highest `Precision` for the distribution-tracking microarchitectures (see `Microarchitecture`). */
 	MaxPrecisionBits: number;
 	/** Highest `Precision` for the `Reference` microarchitecture. */
 	MaxReferenceQuality: number;
@@ -86,7 +85,6 @@ export type TierLimits = {
 	DataSourceCount: number | null;
 	DedicatedSingleTenancyPrivateServerOption: boolean;
 	ExecutionTimeInMillisecondsCount: number | null;
-	GatewayCount: number | null;
 	KeyCount: number | null;
 	PlotCount: number | null;
 	ProCoreVariants: boolean;

@@ -8,6 +8,7 @@ import {
 	UserLogsQueryParams,
 	UserUpdateResponse,
 } from "../types/users";
+import { paginationParams } from "../utils/listParams";
 
 export class UsersManager {
 	constructor(private readonly client: AxiosInstance) {}
@@ -46,16 +47,9 @@ export class UsersManager {
 	}
 
 	public async getLogs(userID: string, options?: UserLogsQueryParams): Promise<UserLogsResponse> {
-		const params: Record<string, string> = {};
-		if (options?.startTime) {
-			params.startTime = options.startTime.toString();
-		}
-		if (options?.endTime) {
-			params.endTime = options.endTime.toString();
-		}
-		if (options?.limit) {
-			params.limit = options.limit.toString();
-		}
+		const params = paginationParams(options);
+		if (options?.startTime !== undefined) params.startTime = options.startTime;
+		if (options?.endTime !== undefined) params.endTime = options.endTime;
 
 		const response = await this.client.get(`/users/${userID}/logs`, { params });
 		return response.data;

@@ -40,7 +40,7 @@ export type TraceVariable = {
 /** `T` with every property optional, except that at least one must be present. */
 export type AtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> & Partial<Omit<T, K>> }[keyof T];
 
-export type ResourceType = "Gateway" | "Bucket" | "Drive" | "SignaloidCloudStorage";
+export type ResourceType = "Bucket" | "Drive" | "SignaloidCloudStorage";
 
 export type DataSource = {
 	Object: "DataSource";
@@ -67,3 +67,5 @@ export type * from "./github";
 export type * from "./organizations";
 export type * from "./plotting";
 export type * from "./tiers";
+export type * from "./realtime";
+export type * from "./pagination";

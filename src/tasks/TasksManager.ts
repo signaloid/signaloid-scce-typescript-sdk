@@ -16,10 +16,9 @@ import { ERROR_CODES } from "../errors/codes";
 import { DatasourcesManager } from "../datasources/DatasourcesManager";
 import { UsersManager } from "../users/UsersManager";
 import { idToChannelName } from "../utils/channel";
-import { serializeListParams } from "../utils/listParams";
+import { serializeListParams, timeFilteredListParams } from "../utils/listParams";
 import { parseStatusEvent } from "../utils/statusEvent";
-
-const TASK_EVENT_ID_KEYS = ["taskId", "taskID"] as const;
+import type { RealtimeEvent } from "../types/realtime";
 
 export class TasksManager {
 	constructor(
@@ -59,9 +58,7 @@ export class TasksManager {
 		return response.data;
 	}
 
-	public async listSummary(
-		options?: Omit<ListTasksQueryParams, "noexpand">,
-	): Promise<ListTasksSummaryResponse> {
+	public async listSummary(options?: Omit<ListTasksQueryParams, "noexpand">): Promise<ListTasksSummaryResponse> {
 		const response = await this.client.get<ListTasksSummaryResponse>("/tasks", {
 			params: this.buildListParams({ ...options, noexpand: true }),
 			paramsSerializer: serializeListParams,
@@ -70,12 +67,7 @@ export class TasksManager {
 	}
 
 	private buildListParams(options?: ListTasksQueryParams): Record<string, any> {
-		const params: Record<string, any> = {};
-		if (options?.status) params.status = options.status;
-		if (options?.startKey) params.startKey = options.startKey;
-		if (options?.from) params.from = options.from;
-		if (options?.to) params.to = options.to;
-		if (options?.limit !== undefined) params.limit = options.limit;
+		const params: Record<string, any> = timeFilteredListParams(options);
 		if (options?.noexpand) params.noexpand = "true";
 		return params;
 	}
@@ -177,8 +169,8 @@ export class TasksManager {
 				}
 			}, isAliveIntervalSec * 1000);
 
-			const messageHandler = async (msg: any) => {
-				const { id: incomingId, status: incomingStatus } = parseStatusEvent(msg, TASK_EVENT_ID_KEYS);
+			const messageHandler = async (msg: RealtimeEvent) => {
+				const { id: incomingId, status: incomingStatus } = parseStatusEvent(msg, "TaskID");
 				if (incomingId !== taskID) {
 					return;
 				}

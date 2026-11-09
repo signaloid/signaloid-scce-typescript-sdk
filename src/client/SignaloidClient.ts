@@ -51,6 +51,14 @@ function parseRetryAfter(header: unknown): number | undefined {
 	return Number.isNaN(date) ? undefined : Math.max(0, Math.ceil((date - Date.now()) / 1000));
 }
 
+// A GET that gets 503 with Retry-After is retried this many times. The API sends that when the
+// database was too busy to read a whole page, so the same request should succeed shortly.
+const MAX_BUSY_RETRIES = 3;
+// A longer Retry-After is passed to the caller instead of waited out.
+const MAX_BUSY_RETRY_AFTER_SECONDS = 30;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export class SignaloidClient {
 	public auth: AuthManager;
 	public realtime: RealtimeClient;
@@ -114,6 +122,28 @@ export class SignaloidClient {
 			return config;
 		});
 
+		// Retry a GET that got 503 with a short Retry-After. Registered before the sanitizer below,
+		// so it sees the raw axios error, and a retry goes through every interceptor again.
+		signaloidApiClient.interceptors.response.use(undefined, async (err) => {
+			const config = err?.config;
+			const isBusyGet =
+				err?.response?.status === 503 && (config?.method ?? "get").toLowerCase() === "get";
+			const retries: number = config?._busyRetries ?? 0;
+			const retryAfter = isBusyGet
+				? parseRetryAfter(err.response.headers?.["retry-after"])
+				: undefined;
+			if (
+				retryAfter === undefined ||
+				retryAfter > MAX_BUSY_RETRY_AFTER_SECONDS ||
+				retries >= MAX_BUSY_RETRIES
+			) {
+				throw err;
+			}
+			config._busyRetries = retries + 1;
+			await sleep(retryAfter * 1000);
+			return signaloidApiClient(config);
+		});
+
 		// sanitize all errors
 		signaloidApiClient.interceptors.response.use(
 			(r) => r,
@@ -172,13 +202,7 @@ export class SignaloidClient {
 			endpoints.publicHost,
 			clientOptions,
 		);
-		this.builds = new BuildsManager(
-			signaloidApiClient,
-			this.realtime,
-			this.publicRealtime,
-			this.auth,
-			this.users,
-		);
+		this.builds = new BuildsManager(signaloidApiClient, this.realtime, this.auth, this.users);
 		this.repositories = new RepositoriesManager(signaloidApiClient);
 		this.cores = new CoresManager(signaloidApiClient);
 		this.buckets = new BucketsManager(signaloidApiClient);

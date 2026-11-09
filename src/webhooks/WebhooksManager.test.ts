@@ -30,41 +30,41 @@ describe("WebhooksManager", () => {
 
 	it("creates a webhook", async () => {
 		const request: CreateWebhookRequest = {
-			url: "https://webhook.site/test-webhook",
-			events: ["build-status", "task-status"],
-			description: "Test webhook",
+			URL: "https://webhook.site/test-webhook",
+			Events: ["build-status", "task-status"],
+			Description: "Test webhook",
 		};
 
 		const result = await webhooksManager.create(request);
-		createdWebhooks.push(result.webhookId); // Track for cleanup
+		createdWebhooks.push(result.WebhookID); // Track for cleanup
 
-		expect(result.webhookId).toBeDefined();
-		expect(result.secret).toMatch(/^whsec_/);
-		expect(result.url).toBe(request.url);
-		expect(result.events).toEqual(request.events);
-		expect(result.status).toBe("active");
-		expect(result.createdAt).toBeDefined();
+		expect(result.WebhookID).toBeDefined();
+		expect(result.Secret).toMatch(/^whsec_/);
+		expect(result.URL).toBe(request.URL);
+		expect(result.Events).toEqual(request.Events);
+		expect(result.Status).toBe("active");
+		expect(result.CreatedAt).toBeDefined();
 	});
 
 	it("lists webhooks", async () => {
 		const response = await webhooksManager.list();
 
-		expect(response.webhooks).toBeInstanceOf(Array);
-		expect(typeof response.count).toBe("number");
-		expect(response.count).toBe(response.webhooks.length);
+		expect(response.Webhooks).toBeInstanceOf(Array);
+		expect(typeof response.Count).toBe("number");
+		expect(response.Count).toBe(response.Webhooks.length);
 	});
 
 	it("gets webhook details", async () => {
 		// Create a webhook first
 		const webhook = await webhooksManager.create({
-			url: "https://webhook.site/test-details",
-			events: ["task-status"],
+			URL: "https://webhook.site/test-details",
+			Events: ["task-status"],
 		});
-		createdWebhooks.push(webhook.webhookId);
+		createdWebhooks.push(webhook.WebhookID);
 
-		const details = await webhooksManager.getOne(webhook.webhookId);
+		const details = await webhooksManager.getOne(webhook.WebhookID);
 
-		expect(details.WebhookID).toBe(webhook.webhookId);
+		expect(details.WebhookID).toBe(webhook.WebhookID);
 		expect(details.URL).toBe("https://webhook.site/test-details");
 		expect(details.Events).toEqual(["task-status"]);
 		expect(details.Status).toBe("active");
@@ -88,8 +88,8 @@ describe("WebhooksManager", () => {
 
 	it("validates invalid URL", async () => {
 		const invalidRequest: CreateWebhookRequest = {
-			url: "invalid-url",
-			events: ["build-status"],
+			URL: "invalid-url",
+			Events: ["build-status"],
 		};
 
 		await expect(webhooksManager.create(invalidRequest)).rejects.toThrow();

@@ -1,4 +1,5 @@
 import type { Tier, TierCapabilities } from "./tiers";
+import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
 export type OrganizationRole = "Owner" | "Member";
 export type OrganizationUserStatus = "Active" | "Pending";
@@ -55,10 +56,12 @@ export type CreateOrganizationResponse = {
 
 export type OrganizationUser = {
 	UserID: string;
+	/** Missing on members added before the API stored it. */
+	OrganizationID?: string;
 	Email: string;
 	Username: string;
 	Role: OrganizationRole;
-	Status: OrganizationUserStatus;
+	Status: "Active";
 	Tier: string;
 	JoinedAt: string;
 	UpdatedAt: string;
@@ -72,12 +75,20 @@ export type OrganizationPendingUser = {
 	UpdatedAt: string;
 };
 
-export type ListOrganizationUsersResponse = {
-	Users: OrganizationUser[];
-	Pending: OrganizationPendingUser[];
-	ActiveCount: number;
-	PendingCount: number;
-	TotalCount: number;
+export type ListOrganizationUsersQueryParams = CursorQueryParams & {
+	/** Which list to return: active members (the default) or pending invitations. Each is paged on its own. */
+	status?: OrganizationUserStatus;
+};
+
+/**
+ * One page of active members, or of pending invitations with `status: "Pending"`. `listUsers()`
+ * narrows `U` to the list that `status` selects.
+ */
+export type ListOrganizationUsersResponse<
+	U extends OrganizationUser | OrganizationPendingUser = OrganizationUser | OrganizationPendingUser,
+> = CursorPaginatedResponse & {
+	Users: U[];
+	Count: number;
 };
 
 export type InviteUserRequest = {
@@ -125,7 +136,9 @@ export type OrganizationInvitation = {
 	InvitedBy?: string;
 };
 
-export type ListInvitationsResponse = {
+export type ListInvitationsQueryParams = CursorQueryParams;
+
+export type ListInvitationsResponse = CursorPaginatedResponse & {
 	Invitations: OrganizationInvitation[];
 	Count: number;
 };

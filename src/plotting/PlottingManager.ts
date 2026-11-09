@@ -18,11 +18,11 @@ function buildPlotQuery(options?: PlotOptions): Record<string, string> {
 export class PlottingManager {
 	constructor(private readonly client: AxiosInstance) {}
 
-	public async plot(uxPayload: PlotRequest["payload"], options?: PlotOptions): Promise<PlotResponse> {
+	public async plot(uxPayload: PlotRequest["Payload"], options?: PlotOptions): Promise<PlotResponse> {
 		if (!uxPayload?.length) throw new Error("plot requires a non-empty Ux payload or sample list");
 		const response = await this.client.post<PlotResponse>(
 			"/plot",
-			{ payload: uxPayload },
+			{ Payload: uxPayload } satisfies PlotRequest,
 			{
 				params: buildPlotQuery(options),
 				headers: { "Content-Type": "application/json" },

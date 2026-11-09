@@ -1,4 +1,5 @@
 import type { Tier, TierCapabilities } from "./tiers";
+import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
 export type UserPreferences = {
 	UpdatedAt: number;
@@ -29,7 +30,6 @@ export type UserResourceUsage = {
 	DataSourceCount: number;
 	DynamicInstructionCount: number;
 	ExecutionTimeInMillisecondsCount: number;
-	GatewayCount: number;
 	KeyCount: number;
 	PlotCount: number;
 	RegistryStorageBytes: number;
@@ -124,10 +124,9 @@ export type UserCustomization = {
 	Organizations: string[];
 };
 
-export type UserLogsQueryParams = {
+export type UserLogsQueryParams = CursorQueryParams & {
 	startTime?: number;
 	endTime?: number;
-	limit?: number;
 };
 
 export type UserLogEntry = {
@@ -146,7 +145,8 @@ export type UserLogQueryTimeRange = {
 	endTime: number;
 };
 
-export type UserLogsResponse = {
+/** Newest first. `Pagination.Links.Next` leads to the entries older than the last one here. */
+export type UserLogsResponse = CursorPaginatedResponse & {
 	logs: UserLogEntry[];
 	queryTimeRange: UserLogQueryTimeRange;
 	totalResults: number;

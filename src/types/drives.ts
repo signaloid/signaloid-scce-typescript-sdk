@@ -1,3 +1,4 @@
+import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
 import { DataSource } from ".";
 
 export type DriveDetails = {
@@ -20,12 +21,11 @@ export type DrivePatchRequest = {
 	DataSources?: DataSource[];
 };
 
-export type ListDrivesQueryParams = {
-	startKey?: string;
-};
+export type ListDrivesQueryParams = PaginationQueryParams;
 
-export type ListDrivesResponse = {
-	user_id: string;
-	drive_ids: string[];
-	drive_count: number;
+export type ListDrivesResponse = PaginatedResponse & {
+	UserID: string;
+	DriveIDs: string[];
+	/** The number of Drives in this page. */
+	Count: number;
 };

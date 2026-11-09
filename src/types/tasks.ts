@@ -1,3 +1,4 @@
+import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
 import type { ResourceType } from ".";
 
 export type TaskStatus =
@@ -55,19 +56,16 @@ export type TaskDetail = {
 	Stats?: TaskStats;
 };
 
-export type ListTasksQueryParams = {
+export type ListTasksQueryParams = PaginationQueryParams & {
 	status?: TaskStatus | TaskStatus[];
-	startKey?: string;
 	from?: string;
 	to?: string;
-	limit?: number;
 	noexpand?: boolean;
 };
 
-export type ListTasksResponse = {
+export type ListTasksResponse = PaginatedResponse & {
 	UserID: string;
 	Count: number;
-	ContinuationKey?: string;
 	Tasks: TaskDetail[];
 };
 
@@ -77,18 +75,16 @@ export type TaskSummary = {
 	CreatedAt: number;
 };
 
-export type ListTasksSummaryResponse = {
+export type ListTasksSummaryResponse = PaginatedResponse & {
 	UserID: string;
 	Count: number;
-	ContinuationKey?: string;
 	Tasks: TaskSummary[];
 };
 
-export type ListBuildTasksResponse = {
+export type ListBuildTasksResponse = PaginatedResponse & {
 	BuildID: string;
 	Tasks: TaskDetail[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
 export type TaskOutputs = {

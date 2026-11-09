@@ -14,9 +14,13 @@ export class SubscriptionsManager {
 		options?: { freeTrialOption?: boolean },
 	): Promise<{ subscription: SubscriptionDetails }> {
 		// The API treats any freeTrialOption value, including "false", as a free-trial request.
-		const response = await this.client.put<{ subscription: SubscriptionDetails }>("/subscriptions", payload, {
-			params: options?.freeTrialOption === true ? { freeTrialOption: true } : undefined,
-		});
+		const response = await this.client.put<{ subscription: SubscriptionDetails }>(
+			"/subscriptions",
+			payload,
+			{
+				params: options?.freeTrialOption === true ? { freeTrialOption: true } : undefined,
+			},
+		);
 		return response.data;
 	}
 }

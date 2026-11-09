@@ -166,9 +166,9 @@ describe("RealtimeClient reconnect", () => {
 		sockets()[1].receive({
 			type: "data",
 			id: channelId,
-			payload: { data: JSON.stringify({ status: "Completed" }) },
+			payload: { data: JSON.stringify({ EventType: "task-status", Data: { Status: "Completed" } }) },
 		});
-		expect(received).toEqual([{ status: "Completed" }]);
+		expect(received).toEqual([{ EventType: "task-status", Data: { Status: "Completed" } }]);
 	});
 
 	it("recovers when the first reconnect attempt fails and a later one succeeds", async () => {

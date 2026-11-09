@@ -1,4 +1,6 @@
 import type { AtLeastOne } from ".";
+import type { BuildStatusEventData, TaskStatusEventData, UsageEventData } from "./realtime";
+import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
 export type WebhookStatus = "active" | "disabled";
 
@@ -12,34 +14,30 @@ export type WebhookEventType =
 
 export type CreateWebhookRequest = {
 	/** An `https` URL. The API refuses localhost and private, link-local or internal addresses. */
-	url: string;
+	URL: string;
 	/** At least one event. */
-	events: WebhookEventType[];
-	description?: string;
+	Events: WebhookEventType[];
+	Description?: string;
 };
 
-export type CreateWebhookResponse = {
-	webhookId: string;
-	url: string;
-	events: string[];
-	description?: string;
-	secret: string;
-	status: WebhookStatus;
-	createdAt: string;
+/** The new webhook, plus the signing secret, which the API returns only here. */
+export type CreateWebhookResponse = WebhookDetails & {
+	/** Keep it: it verifies `Signaloid-Webhook-Signature` and cannot be fetched again. */
+	Secret: string;
 };
 
 export type UpdateWebhookRequest = AtLeastOne<{
-	url: string;
-	events: WebhookEventType[];
-	description: string;
-	status: WebhookStatus;
+	URL: string;
+	Events: WebhookEventType[];
+	Description: string;
+	Status: WebhookStatus;
 }>;
 
 export type WebhookDetails = {
 	Object: string;
 	WebhookID: string;
 	URL: string;
-	Events: string[];
+	Events: WebhookEventType[];
 	Description: string;
 	Status: WebhookStatus;
 	CreatedAt: string;
@@ -49,7 +47,25 @@ export type WebhookDetails = {
 	LastDeliveryTime: string | null;
 };
 
-export type ListWebhooksResponse = {
-	webhooks: WebhookDetails[];
-	count: number;
+export type ListWebhooksQueryParams = CursorQueryParams;
+
+export type ListWebhooksResponse = CursorPaginatedResponse & {
+	Webhooks: WebhookDetails[];
+	Count: number;
 };
+
+/**
+ * The body your endpoint receives for each delivery. Verify it first: the
+ * `Signaloid-Webhook-Signature` header is `sha256=` followed by the hex HMAC-SHA256 of
+ * `<Signaloid-Webhook-Timestamp>.<raw body>`, keyed with the webhook's `Secret`.
+ */
+export type WebhookDelivery = {
+	Version: "2.0";
+	/** Also sent as the `Signaloid-Webhook-Id` header. */
+	ID: string;
+	Created: string;
+} & (
+	| { Event: "task-status"; Data: TaskStatusEventData }
+	| { Event: "build-status"; Data: BuildStatusEventData }
+	| { Event: Exclude<WebhookEventType, "task-status" | "build-status">; Data: UsageEventData }
+);

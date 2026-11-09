@@ -1,4 +1,4 @@
-import { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { createClient } from "../client/createClient";
 import { FilesManager } from "../files/FilesManager";
 import { FileItem } from "../types/files";
@@ -20,20 +20,20 @@ describe("FilesManager", () => {
 		it("returns items with correct shape", async () => {
 			const response = await filesManager.list({ path: "/" });
 
-			expect(response.items).toBeInstanceOf(Array);
-			expect(typeof response.count).toBe("number");
-			expect(response.count).toBe(response.items.length);
+			expect(response.Files).toBeInstanceOf(Array);
+			expect(typeof response.Count).toBe("number");
+			expect(response.Count).toBe(response.Files.length);
 
-			if (response.items.length > 0) {
-				const item = response.items[0];
-				expect(typeof item.path).toBe("string");
-				expect(typeof item.last_modified).toBe("number");
-				expect(typeof item.size).toBe("number");
-				expect(typeof item.etag).toBe("string");
+			if (response.Files.length > 0) {
+				const item = response.Files[0];
+				expect(typeof item.Path).toBe("string");
+				expect(typeof item.LastModified).toBe("number");
+				expect(typeof item.Size).toBe("number");
+				expect(typeof item.ETag).toBe("string");
 			}
 		});
 
-		it("supports pagination via nextContinuationToken", async () => {
+		it("supports pagination via ContinuationKey", async () => {
 			const PREFIX = "pagination/";
 			const SEED_COUNT = 5;
 			for (let i = 0; i < SEED_COUNT; i++) {
@@ -41,24 +41,24 @@ describe("FilesManager", () => {
 			}
 
 			const firstPage = await filesManager.list({ path: `/${PREFIX}` });
-			expect(firstPage.items?.length).toBeGreaterThan(0);
+			expect(firstPage.Files.length).toBeGreaterThan(0);
 
-			if (!firstPage.nextContinuationToken) {
+			if (!firstPage.ContinuationKey) {
 				return;
 			}
 
-			expect(typeof firstPage.nextContinuationToken).toBe("string");
+			expect(typeof firstPage.ContinuationKey).toBe("string");
 
 			const secondPage = await filesManager.list({
 				path: `/${PREFIX}`,
-				startKey: firstPage.nextContinuationToken,
+				startKey: firstPage.ContinuationKey,
 			});
 
-			expect(secondPage.items?.length).toBeGreaterThan(0);
+			expect(secondPage.Files.length).toBeGreaterThan(0);
 
-			const firstPaths = new Set(firstPage.items.map((i) => i.path));
-			for (const item of secondPage.items ?? []) {
-				expect(firstPaths.has(item.path)).toBe(false);
+			const firstPaths = new Set(firstPage.Files.map((i) => i.Path));
+			for (const item of secondPage.Files) {
+				expect(firstPaths.has(item.Path)).toBe(false);
 			}
 		});
 	});
@@ -71,22 +71,22 @@ describe("FilesManager", () => {
 			const result = (await filesManager.get("test-stat-file.txt")) as FileItem;
 
 			expect(result).toBeDefined();
-			expect(typeof result.last_modified).toBe("number");
-			expect(typeof result.size).toBe("number");
-			expect(typeof result.content_type).toBe("string");
-			expect(typeof result.etag).toBe("string");
-			// download_url should NOT be present without ?download
-			expect(result.download_url).toBeUndefined();
+			expect(typeof result.LastModified).toBe("number");
+			expect(typeof result.Size).toBe("number");
+			expect(typeof result.ContentType).toBe("string");
+			expect(typeof result.ETag).toBe("string");
+			// DownloadURL should NOT be present without ?download
+			expect(result.DownloadURL).toBeUndefined();
 		});
 
-		it("includes download_url when download=true", async () => {
+		it("includes DownloadURL when download=true", async () => {
 			const result = (await filesManager.get("test-stat-file.txt", true)) as FileItem;
 
 			expect(result).toBeDefined();
-			// When download=true, the response includes a presigned download_url
-			if (result.download_url) {
-				expect(typeof result.download_url).toBe("string");
-				expect(result.download_url).toContain("https://");
+			// When download=true, the response includes a presigned DownloadURL
+			if (result.DownloadURL) {
+				expect(typeof result.DownloadURL).toBe("string");
+				expect(result.DownloadURL).toContain("https://");
 			}
 		});
 
@@ -128,12 +128,18 @@ describe("FilesManager", () => {
 	});
 });
 
-// Runs without the API: the guard must reject before FilesManager asks for a presigned URL.
-describe("FilesManager empty upload guard", () => {
-	const put = jest.fn().mockResolvedValue({ data: { message: "OK" } });
+// Runs without the API: the upload flow against a stubbed client and presigned PUT.
+describe("FilesManager upload without the API", () => {
+	const UPLOAD_URL = "https://storage.test/upload";
+	const put = jest.fn();
 	const filesManager = new FilesManager({ put } as unknown as AxiosInstance);
+	let presignedPut: jest.SpyInstance;
 
-	beforeEach(() => put.mockClear());
+	beforeEach(() => {
+		put.mockReset().mockResolvedValue({ data: { UploadURL: UPLOAD_URL } });
+		presignedPut = jest.spyOn(axios, "put").mockResolvedValue({ status: 200 });
+	});
+	afterEach(() => presignedPut.mockRestore());
 
 	it.each([
 		["string", ""],
@@ -144,8 +150,15 @@ describe("FilesManager empty upload guard", () => {
 		expect(put).not.toHaveBeenCalled();
 	});
 
-	it("still requests a presigned URL for non-empty content", async () => {
+	it("requests a presigned URL for non-empty content and uploads to UploadURL", async () => {
 		await filesManager.upload("one-byte.txt", "x");
 		expect(put).toHaveBeenCalledWith("/files/one-byte.txt", null, { params: { size: "1" } });
+		expect(presignedPut).toHaveBeenCalledWith(UPLOAD_URL, expect.any(Blob), expect.anything());
+	});
+
+	it("fails instead of reporting success when the API returns no UploadURL", async () => {
+		put.mockResolvedValueOnce({ data: { upload_url: UPLOAD_URL } });
+		await expect(filesManager.upload("one-byte.txt", "x")).rejects.toThrow(/UploadURL/);
+		expect(presignedPut).not.toHaveBeenCalled();
 	});
 });

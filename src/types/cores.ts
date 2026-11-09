@@ -1,3 +1,5 @@
+import type { ListAllOptions, PaginatedResponse, PaginationQueryParams } from "./pagination";
+
 /**
  * Core classes that `POST /cores` and `PATCH /cores/{CoreID}` accept. Apart from the
  * `NativeCoreClass` ones, which of these an account may use is tier-gated: see `CoreClasses`
@@ -22,12 +24,23 @@ export type NativeMicroarchitecture = "Native";
 export type StoredCoreClass = CoreClass | "C0";
 
 /**
- * The C0-microSD, C0-microSD-plus and C0-SD classes support only `Athens`, `Rome` and `Bypass`.
+ * `Athens`, `Rome`, `Jupiter`, `Mercury` and `Europa` are the distribution-tracking
+ * microarchitectures. `Jupiter`, `Mercury` and `Europa` are for the `C0Pro` class only. The
+ * C0-microSD, C0-microSD-plus and C0-SD classes support only `Athens`, `Rome` and `Bypass`.
  * The `r7i` class supports only `Native`, and `Native` is valid with no other
  * class. Which microarchitectures an account may use is tier-gated: see `Microarchitectures`
- * and `CoreClasses` on `UserDetails`.
+ * and `CoreClasses` on `UserDetails`. The Free tier does not get `Mercury` or `Europa`, so the
+ * API refuses a Core, build or Repository on them from a Free account with 403.
  */
-export type Microarchitecture = "Athens" | "Rome" | "Bypass" | "Reference" | "Jupiter" | NativeMicroarchitecture;
+export type Microarchitecture =
+	| "Athens"
+	| "Rome"
+	| "Bypass"
+	| "Reference"
+	| "Jupiter"
+	| "Mercury"
+	| "Europa"
+	| NativeMicroarchitecture;
 
 /**
  * Microarchitectures a stored Core or build may carry. `Atlas` is retired: the API refuses it on
@@ -36,8 +49,8 @@ export type Microarchitecture = "Athens" | "Rome" | "Bypass" | "Reference" | "Ju
 export type StoredMicroarchitecture = Microarchitecture | "Atlas";
 
 /**
- * `Athens` and `Rome` accept `None` or `Basic`, `Jupiter` accepts `Advanced` only, and
- * `Bypass`, `Reference` and `Native` accept `None` only. The supported modes per microarchitecture are
+ * `Athens` and `Rome` accept `None` or `Basic`. `Jupiter`, `Mercury` and `Europa` accept only
+ * `Advanced`. `Bypass`, `Reference` and `Native` accept only `None`. The supported modes per microarchitecture are
  * also in `Microarchitectures` on `UserDetails`.
  */
 export type DependencyTracking = "None" | "Basic" | "Advanced";
@@ -74,8 +87,9 @@ type CoreRequestBase = {
 export type UncertainCoreRequest = CoreRequestBase & {
 	Class: Exclude<CoreClass, NativeCoreClass>;
 	/**
-	 * A power of two from 4 to 8192 for `Athens`, `Rome` and `Jupiter`, and from 4 to 1000000 for
-	 * `Reference`. Tier ceilings are in `UserDetails.Allowance`.
+	 * A power of two from 4 to 8192 for the distribution-tracking microarchitectures (see
+	 * `Microarchitecture`), and from 4 to 1000000 for `Reference`. Tier ceilings are in
+	 * `UserDetails.Allowance`.
 	 */
 	Precision: number;
 	Microarchitecture: Exclude<Microarchitecture, NativeMicroarchitecture | "Bypass">;
@@ -109,14 +123,21 @@ export type CoreRequest = UncertainCoreRequest | BypassCoreRequest | NativeCoreR
 /** `PATCH /cores/{CoreID}` takes the full Core body, with the same rules as `CoreRequest`. */
 export type CorePatchRequest = CoreRequest;
 
-export type ListCoresQueryParams = {
+export type ListCoresQueryParams = PaginationQueryParams & {
+	/**
+	 * List the default Cores instead of the caller's own. The API leaves out default Cores the
+	 * caller's tier cannot use, after it reads a page, so a page can be short or even empty and
+	 * still have a `Pagination.Links.Next`. Keep paging until `Pagination.Links.Next` is absent,
+	 * or use `cores.listAll()`, which does.
+	 */
 	default?: boolean;
-	startKey?: string;
 };
 
-export type ListCoresResponse = {
+/** Options for `cores.listAll()`, which manages the cursor itself. */
+export type ListAllCoresOptions = ListAllOptions<ListCoresQueryParams>;
+
+export type ListCoresResponse = PaginatedResponse & {
 	UserID: string;
 	Count: number;
-	ContinuationKey?: string;
 	Cores: CoreDetails[];
 };

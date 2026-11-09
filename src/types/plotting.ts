@@ -1,11 +1,12 @@
 /** A Ux string, or a list of numeric samples. */
 export type PlotRequest = {
-	payload: string | number[];
+	Payload: string | number[];
 };
 
 export type PlotResponse = {
-	plotID: string;
-	presignedURL: string;
+	PlotID: string;
+	/** A pre-signed URL for the plot image, valid for about seven days. */
+	PresignedURL: string;
 };
 
 export type PlotOptions = {
