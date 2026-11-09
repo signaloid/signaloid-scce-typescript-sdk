@@ -32,7 +32,7 @@ export class SamplesManager {
 			method: "GET",
 			url: "/samples",
 			params,
-			data: { payload: uxPayload },
+			data: { Payload: uxPayload },
 			headers: { "Content-Type": "application/json" },
 		});
 		return response.data;

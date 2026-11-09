@@ -1,3 +1,4 @@
+import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
 import { TraceVariable, DataSource } from ".";
 import { BuildDetails } from "./builds";
 
@@ -56,24 +57,23 @@ export type RepositoryDetails = {
 	UpdatedAt: number;
 };
 
-export type ListRepositoriesResponse = {
+export type ListRepositoriesQueryParams = PaginationQueryParams;
+
+export type ListRepositoriesResponse = PaginatedResponse & {
 	UserID: string;
 	Repositories: RepositoryDetails[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
-export type GetRepositoryBuildsQueryParams = {
-	startKey?: string;
+export type GetRepositoryBuildsQueryParams = PaginationQueryParams & {
 	from?: string;
 	to?: string;
 };
 
-export type ListBuildsByRepositoryResponse = {
+export type ListBuildsByRepositoryResponse = PaginatedResponse & {
 	RepositoryID: string;
 	Builds: BuildDetails[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
 export type LookupRepositoryRequest = {

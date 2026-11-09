@@ -1,3 +1,4 @@
+import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
 import { TraceVariable, DataSource } from ".";
 import type { DependencyTracking, LegacyCorrelationTracking, StoredMicroarchitecture } from "./cores";
 
@@ -41,11 +42,21 @@ export type CreateRepositoryBuildResponse = {
 	BuildID: string;
 };
 
-export type ListBuildsResponse = {
+export type ListBuildsQueryParams = PaginationQueryParams & {
+	from?: string;
+	to?: string;
+	status?: BuildStatus | BuildStatus[];
+};
+
+export type ListBuildTasksQueryParams = PaginationQueryParams & {
+	from?: string;
+	to?: string;
+};
+
+export type ListBuildsResponse = PaginatedResponse & {
 	UserID: string;
 	Builds: BuildDetails[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
 export type BuildSummary = {
@@ -54,11 +65,10 @@ export type BuildSummary = {
 	CreatedAt: number;
 };
 
-export type ListBuildsSummaryResponse = {
+export type ListBuildsSummaryResponse = PaginatedResponse & {
 	UserID: string;
 	Builds: BuildSummary[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
 export type BuildStatusTransition = {
@@ -142,11 +152,12 @@ export type Variable = {
 	Function: string;
 };
 
-export type BuildVariablesResponse = {
+export type BuildVariablesQueryParams = PaginationQueryParams;
+
+export type BuildVariablesResponse = PaginatedResponse & {
 	BuildID: string;
 	Variables: Variable[];
 	Count: number;
-	ContinuationKey?: string;
 };
 
 /**

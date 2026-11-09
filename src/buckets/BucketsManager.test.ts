@@ -33,7 +33,6 @@ describe("BucketsManager", () => {
 			const payload: BucketRequest = {
 				Name: "Test Bucket",
 				Account: "test-account",
-				MountPath: "/test/path",
 				Read: true,
 				Write: false,
 			};
@@ -44,7 +43,7 @@ describe("BucketsManager", () => {
 			expect(bucket.BucketID).toBeDefined();
 			expect(bucket.Name).toBe("Test Bucket");
 			expect(bucket.Account).toBe("test-account");
-			expect(bucket.MountPath).toBe("/test/path");
+			expect(bucket).not.toHaveProperty("MountPath");
 			expect(bucket.Read).toBe(true);
 			expect(bucket.Write).toBe(false);
 			expect(bucket.Object).toBe("Bucket");
@@ -55,9 +54,9 @@ describe("BucketsManager", () => {
 		it("returns buckets list", async () => {
 			const response = await bucketsManager.list();
 
-			expect(response.bucket_ids).toBeInstanceOf(Array);
-			expect(typeof response.bucket_count).toBe("number");
-			expect(response.user_id).toBeDefined();
+			expect(response.BucketIDs).toBeInstanceOf(Array);
+			expect(response.Count).toBe(response.BucketIDs.length);
+			expect(response.UserID).toBeDefined();
 		});
 
 		it("includes created bucket in list", async () => {
@@ -65,7 +64,6 @@ describe("BucketsManager", () => {
 			const bucket = await bucketsManager.create({
 				Name: "List Test Bucket",
 				Account: "list-test-account",
-				MountPath: "/list/test",
 				Read: true,
 				Write: false,
 			});
@@ -73,7 +71,7 @@ describe("BucketsManager", () => {
 
 			const response = await bucketsManager.list();
 
-			expect(response.bucket_ids).toContain(bucket.BucketID);
+			expect(response.BucketIDs).toContain(bucket.BucketID);
 		});
 	});
 
@@ -83,7 +81,6 @@ describe("BucketsManager", () => {
 			const createdBucket = await bucketsManager.create({
 				Name: "GetOne Test Bucket",
 				Account: "getone-test-account",
-				MountPath: "/getone/test",
 				Read: false,
 				Write: true,
 			});
@@ -107,7 +104,6 @@ describe("BucketsManager", () => {
 			const bucket = await bucketsManager.create({
 				Name: "Original Name",
 				Account: "original-account",
-				MountPath: "/original/path",
 				Read: true,
 				Write: false,
 			});
@@ -118,7 +114,6 @@ describe("BucketsManager", () => {
 				Name: "Updated Name",
 				Read: false,
 				Write: true,
-				MountPath: "/updated/path",
 			};
 
 			const result = await bucketsManager.update(bucket.BucketID, updatePayload);
@@ -129,7 +124,6 @@ describe("BucketsManager", () => {
 			expect(updatedBucket.Name).toBe("Updated Name");
 			expect(updatedBucket.Read).toBe(false);
 			expect(updatedBucket.Write).toBe(true);
-			expect(updatedBucket.MountPath).toBe("/updated/path");
 		});
 	});
 
@@ -139,7 +133,6 @@ describe("BucketsManager", () => {
 			const bucket = await bucketsManager.create({
 				Name: "Bucket to Delete",
 				Account: "delete-test-account",
-				MountPath: "/delete/test",
 				Read: true,
 				Write: false,
 			});

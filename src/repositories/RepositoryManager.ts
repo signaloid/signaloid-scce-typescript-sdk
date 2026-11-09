@@ -4,6 +4,7 @@ import { SdkError } from "../errors/SdkError";
 import {
 	GetRepositoryBuildsQueryParams,
 	ListBuildsByRepositoryResponse,
+	ListRepositoriesQueryParams,
 	ListRepositoriesResponse,
 	LookupRepositoryRequest,
 	LookupRepositoryResponse,
@@ -12,15 +13,31 @@ import {
 	RepositoryPatchRequest,
 	RepositoryRequest,
 } from "../types/repositories";
+import { paginationParams, timeFilteredListParams, withLegacyStartKey } from "../utils/listParams";
+import { listAllItems } from "../utils/paginate";
+import type { ListAllOptions } from "../types/pagination";
 
 export class RepositoriesManager {
 	constructor(private readonly client: AxiosInstance) {}
 
-	public async list(startKey?: string): Promise<ListRepositoriesResponse> {
+	/**
+	 * One page of Repositories. See `cursor` for the next one. A string argument is the
+	 * deprecated `startKey`.
+	 */
+	public async list(options?: ListRepositoriesQueryParams | string): Promise<ListRepositoriesResponse> {
 		const response = await this.client.get("/repositories", {
-			params: startKey ? { startKey } : undefined,
+			params: paginationParams(withLegacyStartKey(options)),
 		});
 		return response.data;
+	}
+
+	/** Every Repository across all pages, read 100 per page unless `limit` says otherwise. */
+	public async listAll(options?: ListAllOptions<ListRepositoriesQueryParams>): Promise<RepositoryDetails[]> {
+		return listAllItems(
+			(query) => this.list(query),
+			options,
+			(page) => page.Repositories,
+		);
 	}
 
 	public async getOne(repositoryID: string): Promise<RepositoryDetails> {
@@ -45,12 +62,17 @@ export class RepositoriesManager {
 		}
 	}
 
+	/** Fails with 403 when the Core is not on the caller's tier. */
 	public async connect(payload: RepositoryRequest): Promise<RepositoryDetails> {
 		const response = await this.client.post("/repositories", payload);
 		return response.data;
 	}
 
-	/** When `options.remove` is set, the API removes those fields and ignores `payload`. */
+	/**
+	 * When `options.remove` is set, the API removes those fields and ignores `payload`.
+	 *
+	 * Fails with 403 when the new Core is not on the caller's tier.
+	 */
 	public async update(
 		repositoryID: string,
 		payload: RepositoryPatchRequest,
@@ -88,16 +110,7 @@ export class RepositoriesManager {
 		repositoryID: string,
 		options?: GetRepositoryBuildsQueryParams,
 	): Promise<ListBuildsByRepositoryResponse> {
-		const params: Record<string, string> = {};
-		if (options?.startKey) {
-			params.startKey = options.startKey;
-		}
-		if (options?.from) {
-			params.from = options.from;
-		}
-		if (options?.to) {
-			params.to = options.to;
-		}
+		const params = timeFilteredListParams(options);
 
 		const path = `/repositories/${repositoryID}/builds`;
 		const response = await this.client.get(path, { params });

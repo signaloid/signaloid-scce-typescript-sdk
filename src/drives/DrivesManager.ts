@@ -6,18 +6,26 @@ import {
 	ListDrivesResponse,
 	ListDrivesQueryParams,
 } from "../types/drives";
+import { paginationParams } from "../utils/listParams";
+import { listAllItems } from "../utils/paginate";
+import type { ListAllOptions } from "../types/pagination";
 
 export class DrivesManager {
 	constructor(private readonly client: AxiosInstance) {}
 
+	/** One page of Drives. See `cursor` for the next one. */
 	public async list(options?: ListDrivesQueryParams): Promise<ListDrivesResponse> {
-		const params: Record<string, string> = {};
-		if (options?.startKey) {
-			params.startKey = options.startKey;
-		}
-
-		const response = await this.client.get("/drives", { params });
+		const response = await this.client.get("/drives", { params: paginationParams(options) });
 		return response.data;
+	}
+
+	/** Every DriveID across all pages, read 100 per page unless `limit` says otherwise. */
+	public async listAll(options?: ListAllOptions<ListDrivesQueryParams>): Promise<string[]> {
+		return listAllItems(
+			(query) => this.list(query),
+			options,
+			(page) => page.DriveIDs,
+		);
 	}
 
 	public async getOne(driveID: string): Promise<DriveDetails> {

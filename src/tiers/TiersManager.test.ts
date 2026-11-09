@@ -18,7 +18,6 @@ const tierLimitKeys: Record<keyof TierLimits, true> = {
 	DataSourceCount: true,
 	DedicatedSingleTenancyPrivateServerOption: true,
 	ExecutionTimeInMillisecondsCount: true,
-	GatewayCount: true,
 	KeyCount: true,
 	PlotCount: true,
 	ProCoreVariants: true,

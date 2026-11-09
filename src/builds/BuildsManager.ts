@@ -4,10 +4,14 @@ import {
 	CreateSourceBuildResponse,
 	CreateRepositoryBuildRequest,
 	CreateRepositoryBuildResponse,
+	ListBuildTasksQueryParams,
+	ListBuildsQueryParams,
 	ListBuildsResponse,
 	ListBuildsSummaryResponse,
 	BuildDetails,
+	BuildVariablesQueryParams,
 	BuildVariablesResponse,
+	Variable,
 	BuildStatus,
 	BuildBinaryResponse,
 	BuildOutputs,
@@ -20,33 +24,51 @@ import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
 import { UsersManager } from "../users/UsersManager";
 import { idToChannelName } from "../utils/channel";
-import { serializeListParams } from "../utils/listParams";
+import { paginationParams, serializeListParams, timeFilteredListParams, withLegacyStartKey } from "../utils/listParams";
+import { listAllItems } from "../utils/paginate";
+import type { ListAllOptions } from "../types/pagination";
 import { parseStatusEvent } from "../utils/statusEvent";
-
-const BUILD_EVENT_ID_KEYS = ["buildId", "BuildID"] as const;
+import type { RealtimeEvent } from "../types/realtime";
 
 export class BuildsManager {
 	constructor(
 		private readonly client: AxiosInstance,
 		private readonly realtime: RealtimeClient,
-		private readonly publicRealtime: RealtimeClient,
 		private readonly auth: AuthManager,
 		private readonly users: UsersManager,
 	) {}
 
-	/** `discoverVars` must not be `true` for the `r7i` Core class: the API refuses it with 400. */
+	/**
+	 * `discoverVars` must not be `true` for the `r7i` Core class: the API refuses it with 400.
+	 *
+	 * Fails with 403 when the Core's class or microarchitecture is not on the caller's tier, and
+	 * with 429 (`API_TOO_MANY_REQUESTS`) when a build limit is reached. Branch on
+	 * `SdkError.errorType`: `ConcurrencyLimitExceeded` clears once in-flight builds complete, so
+	 * retry after `retryAfter` seconds. `BuildTimeLimitExceeded` does not clear until the billing
+	 * period resets or the account is upgraded, so do not retry it.
+	 *
+	 * Fails with 413 (`API_PAYLOAD_TOO_LARGE`) when the Build is over 384 KB, counting its decoded
+	 * source code, `ConfigMk`, `DataSources` and `TraceVariables`. Build larger sources from a
+	 * connected Repository with `createFromRepository()` instead.
+	 */
 	public async createFromSourceCode(
 		payload: CreateSourceBuildRequest,
 		discoverVars?: boolean,
 	): Promise<CreateSourceBuildResponse> {
 		const config = discoverVars !== undefined ? { params: { DiscoverVariables: discoverVars } } : undefined;
-		const response = await this.client.post<CreateSourceBuildResponse>("/sourcecode/builds", payload, config);
+		const response = await this.client.post<CreateSourceBuildResponse>(
+			"/sourcecode/builds",
+			payload,
+			config,
+		);
 		return response.data;
 	}
 
 	/**
 	 * `discoverVars` must not be `true` for the `r7i` Core class: the API refuses it with 400.
 	 * For that class, the `TraceVariables` stored on the Repository are ignored.
+	 *
+	 * Fails with 403 and 429 as {@link createFromSourceCode} does.
 	 */
 	public async createFromRepository(
 		repositoryID: string,
@@ -60,22 +82,10 @@ export class BuildsManager {
 		return response.data;
 	}
 
-	public async list(options?: {
-		startKey?: string;
-		from?: string;
-		to?: string;
-		status?: BuildStatus | BuildStatus[];
-		limit?: number;
-	}): Promise<ListBuildsResponse> {
-		const params: Record<string, any> = {};
-		if (options?.startKey) params.startKey = options.startKey;
-		if (options?.from) params.from = options.from;
-		if (options?.to) params.to = options.to;
-		if (options?.status) params.status = options.status;
-		if (options?.limit !== undefined) params.limit = options.limit;
-
+	/** One page of Builds. See `cursor` for the next one. */
+	public async list(options?: ListBuildsQueryParams): Promise<ListBuildsResponse> {
 		const response = await this.client.get<ListBuildsResponse>("/builds", {
-			params,
+			params: timeFilteredListParams(options),
 			paramsSerializer: serializeListParams,
 		});
 		return response.data;
@@ -89,22 +99,9 @@ export class BuildsManager {
 	 * Use this when you only need to enumerate builds (e.g., to fan out status
 	 * checks) and do not need the full `BuildDetails`.
 	 */
-	public async listSummary(options?: {
-		startKey?: string;
-		from?: string;
-		to?: string;
-		status?: BuildStatus | BuildStatus[];
-		limit?: number;
-	}): Promise<ListBuildsSummaryResponse> {
-		const params: Record<string, any> = { noexpand: true };
-		if (options?.startKey) params.startKey = options.startKey;
-		if (options?.from) params.from = options.from;
-		if (options?.to) params.to = options.to;
-		if (options?.status) params.status = options.status;
-		if (options?.limit !== undefined) params.limit = options.limit;
-
+	public async listSummary(options?: ListBuildsQueryParams): Promise<ListBuildsSummaryResponse> {
 		const response = await this.client.get<ListBuildsSummaryResponse>("/builds", {
-			params,
+			params: { ...timeFilteredListParams(options), noexpand: true },
 			paramsSerializer: serializeListParams,
 		});
 		return response.data;
@@ -132,21 +129,35 @@ export class BuildsManager {
 		return (await this.getOne(buildID)).Status;
 	}
 
-	public async getVariables(buildID: string, startKey?: string): Promise<BuildVariablesResponse> {
+	/**
+	 * One page of the Build's variables. See `cursor` for the next one. A string argument is the
+	 * deprecated `startKey`.
+	 */
+	public async getVariables(
+		buildID: string,
+		options?: BuildVariablesQueryParams | string,
+	): Promise<BuildVariablesResponse> {
 		const response = await this.client.get<BuildVariablesResponse>(`/builds/${buildID}/variables`, {
-			params: startKey ? { startKey } : undefined,
+			params: paginationParams(withLegacyStartKey(options)),
 		});
 		return response.data;
 	}
 
-	public async listTasks(
+	/** Every variable of the Build across all pages. */
+	public async getAllVariables(
 		buildID: string,
-		options?: { startKey?: string; from?: string; to?: string },
-	): Promise<ListBuildTasksResponse> {
-		const params: Record<string, string> = {};
-		if (options?.startKey) params.startKey = options.startKey;
-		if (options?.from) params.from = options.from;
-		if (options?.to) params.to = options.to;
+		options?: ListAllOptions<BuildVariablesQueryParams>,
+	): Promise<Variable[]> {
+		return listAllItems(
+			(query) => this.getVariables(buildID, query),
+			options,
+			(page) => page.Variables,
+		);
+	}
+
+	/** One page of a Build's Tasks. See `cursor` for the next one. */
+	public async listTasks(buildID: string, options?: ListBuildTasksQueryParams): Promise<ListBuildTasksResponse> {
+		const params = timeFilteredListParams(options);
 
 		const response = await this.client.get<ListBuildTasksResponse>(`/builds/${buildID}/tasks`, { params });
 		return response.data;
@@ -211,12 +222,15 @@ export class BuildsManager {
 					try {
 						const { id: incomingId, status: incomingStatus } = parseStatusEvent(
 							msg,
-							BUILD_EVENT_ID_KEYS,
+							"BuildID",
 						);
 
 						if (incomingId !== buildID) return;
 
-						if (incomingStatus && ["Completed", "Cancelled", "Stopped"].includes(incomingStatus)) {
+						if (
+							incomingStatus &&
+							["Completed", "Cancelled", "Stopped"].includes(incomingStatus)
+						) {
 							if (isResolved) return;
 
 							clearTimeout(timeout);
@@ -224,7 +238,10 @@ export class BuildsManager {
 
 							try {
 								const outputs = await this.getOutputs(buildID);
-								resolve({ status: incomingStatus as BuildStatus, outputs });
+								resolve({
+									status: incomingStatus as BuildStatus,
+									outputs,
+								});
 							} catch (outputError) {
 								reject(outputError);
 							}
@@ -255,32 +272,40 @@ export class BuildsManager {
 		}
 	}
 
+	/**
+	 * Waits until the build reaches a final status, and returns it.
+	 *
+	 * Build status events go only to the owner's private `build-status` channel, whether or
+	 * not the build is public. So the owner gets live events, while any other caller relies on
+	 * the status check that runs every 10 seconds, as does the owner if subscribing fails.
+	 */
 	public async waitForBuild(
 		buildID: string,
-		options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},
+		options: { timeoutSec?: number; userId?: string } = {},
 	): Promise<string> {
 		const isAliveIntervalSec = 10;
 		const completeStatus = ["Completed", "Cancelled", "Stopped"];
 		const timeoutSec = options.timeoutSec ?? 60;
 
-		let isPublic = options.isPublic;
-		if (isPublic === undefined) {
-			try {
-				isPublic = (await this.getOne(buildID)).IsPublic ?? false;
-			} catch (err) {
-				// Only treat 404 as non-public; other errors must propagate so we do not subscribe to the wrong real-time channel.
-				if (err instanceof SdkError && err.code === ERROR_CODES.API_NOT_FOUND) {
-					isPublic = false;
-				} else {
-					throw err;
-				}
-			}
+		// One lookup gives the owner, which decides whether live events can arrive, and the
+		// current status. Its errors, such as an invalid key or a missing build, propagate here
+		// instead of turning into a timeout. getUserId() returns "" for an API key, so
+		// users.me() fills in the ID there.
+		const [build, userId] = await Promise.all([
+			this.getOne(buildID),
+			options.userId ||
+				this.auth.getUserId().then(
+					(id) =>
+						id ||
+						this.users
+							.me()
+							.then((user) => user.UserID)
+							.catch(() => ""),
+				),
+		]);
+		if (completeStatus.includes(build.Status)) {
+			return build.Status;
 		}
-
-		const realtime = isPublic ? this.publicRealtime : this.realtime;
-		const channelName = isPublic
-			? `public-build-status/${idToChannelName(buildID)}`
-			: `build-status/${idToChannelName(options.userId || (await this.auth.getUserId()) || (await this.users.me()).UserID)}`;
 
 		// Subscription establishing can take up to 10sec.
 		//  -> Therefore we will likely miss updates of quick builds.
@@ -294,7 +319,15 @@ export class BuildsManager {
 		// For several reasons updates might not come
 		//  -> Therefore every N seconds we must check the state the old way.
 
-		const channelPromise = realtime.channel(channelName).subscribe();
+		// Build status events go only to the owner's channel, so anyone else would wait on a
+		// channel that never carries this build. A failed subscription falls back to polling.
+		const channelPromise =
+			userId && userId === build.Owner
+				? this.realtime
+						.channel(`build-status/${idToChannelName(userId)}`)
+						.subscribe()
+						.catch(() => undefined)
+				: undefined;
 
 		const getBuildDoneStatus = () =>
 			this.getStatus(buildID).then(
@@ -303,11 +336,13 @@ export class BuildsManager {
 			);
 
 		const buildAlreadyDonePromise = getBuildDoneStatus();
-		const potentialEndState = await Promise.race([channelPromise, buildAlreadyDonePromise]);
+		const potentialEndState = await Promise.race(
+			channelPromise ? [channelPromise, buildAlreadyDonePromise] : [buildAlreadyDonePromise],
+		);
 
 		if (typeof potentialEndState === "string") {
 			// oops, build is finished. Unsubscribe and return
-			let channel = await channelPromise.catch(() => {});
+			let channel = await channelPromise?.catch(() => {});
 			channel?.close();
 			return potentialEndState;
 		}
@@ -335,8 +370,8 @@ export class BuildsManager {
 				}
 			}, isAliveIntervalSec * 1000);
 
-			const messageHandler = async (msg: any) => {
-				const { id: incomingId, status: incomingStatus } = parseStatusEvent(msg, BUILD_EVENT_ID_KEYS);
+			const messageHandler = async (msg: RealtimeEvent) => {
+				const { id: incomingId, status: incomingStatus } = parseStatusEvent(msg, "BuildID");
 				if (incomingId !== buildID) {
 					return;
 				}
@@ -352,7 +387,7 @@ export class BuildsManager {
 			const cleanup = () => {
 				clearTimeout(timeout);
 				clearInterval(regularChecks);
-				channel.close();
+				channel?.close();
 			};
 
 			const setComplete = async (ok: boolean, msg: string) => {
@@ -368,8 +403,8 @@ export class BuildsManager {
 				}
 			};
 
-			channel.on("message", messageHandler);
-			channel.on("error", errorHandler);
+			channel?.on("message", messageHandler);
+			channel?.on("error", errorHandler);
 
 			// Also setComplete() if the original promise succeeds
 			buildAlreadyDonePromise.then((finishedState) => {

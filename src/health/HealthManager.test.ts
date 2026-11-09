@@ -17,8 +17,7 @@ describe("HealthManager", () => {
 	it("gets overall health", async () => {
 		const response = await healthManager.getOverallHealth();
 
-		expect(response.timestamp).toBeDefined();
-		expect(response.services).toBeInstanceOf(Array);
-		expect(typeof response.timestamp).toBe("string");
+		expect(response.Services).toBeInstanceOf(Array);
+		expect(typeof response.Timestamp).toBe("string");
 	});
 });

@@ -1,48 +1,49 @@
-import { BuildStats, BuildStatus } from "./builds";
+import { BuildStatus } from "./builds";
 import { TaskStatus } from "./tasks";
 
 export type ServiceHealthStatus = "healthy" | "unhealthy" | "degraded" | "unknown";
 
 export type HealthEndpointStatus = {
-	status: number;
-	responseTime: number;
+	/** HTTP status code the probe got from the endpoint. */
+	Status: number;
+	/** In milliseconds. */
+	ResponseTime: number;
 };
 
 export type HealthBuildStatus = {
-	id: string;
-	status: BuildStatus;
-	duration: number;
+	ID: string;
+	Status: BuildStatus;
+	/** In milliseconds. */
+	Duration: number;
 };
 
-export type HealthRepoBuildStatus = {
-	id: string;
-	status: BuildStatus;
-	duration: number;
-};
+export type HealthRepoBuildStatus = HealthBuildStatus;
 
 export type HealthTaskStatus = {
-	id: string;
-	status: TaskStatus;
-	duration: number;
+	ID: string;
+	Status: TaskStatus;
+	/** In milliseconds. */
+	Duration: number;
 };
 
 export type ServiceHealthDetails = {
-	responseTime: number;
-	error?: string;
-	endpoints?: Record<string, HealthEndpointStatus>;
-	buildStatus?: HealthBuildStatus;
-	repoBuildStatus?: HealthRepoBuildStatus;
-	taskStatus?: HealthTaskStatus;
+	/** In milliseconds. */
+	ResponseTime: number;
+	Error?: string;
+	Endpoints?: Record<string, HealthEndpointStatus>;
+	BuildStatus?: HealthBuildStatus;
+	RepoBuildStatus?: HealthRepoBuildStatus;
+	TaskStatus?: HealthTaskStatus;
 };
 
 export type ServiceHealthResponse = {
-	service: string;
-	status: ServiceHealthStatus;
-	timestamp: string;
-	details: ServiceHealthDetails;
+	Service: string;
+	Status: ServiceHealthStatus;
+	Timestamp: string;
+	Details: ServiceHealthDetails;
 };
 
 export type HealthResponse = {
-	timestamp: string;
-	services: ServiceHealthResponse[];
+	Timestamp: string;
+	Services: ServiceHealthResponse[];
 };

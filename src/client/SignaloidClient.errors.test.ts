@@ -12,11 +12,19 @@ describe("SignaloidClient error mapping", () => {
 	let server: http.Server;
 	let client: SignaloidClient;
 	let canned: CannedResponse;
+	// Responses to send before falling back to `canned`, one per request.
+	let queue: CannedResponse[] = [];
+	let requests: string[] = [];
+	// When each request reached the server, in milliseconds, to check the waits between them.
+	let requestTimes: number[] = [];
 
 	beforeAll(async () => {
-		server = http.createServer((_req, res) => {
-			res.writeHead(canned.status, { "Content-Type": "application/json", ...canned.headers });
-			res.end(JSON.stringify(canned.body));
+		server = http.createServer((req, res) => {
+			requests.push(`${req.method} ${req.url}`);
+			requestTimes.push(performance.now());
+			const response = queue.shift() ?? canned;
+			res.writeHead(response.status, { "Content-Type": "application/json", ...response.headers });
+			res.end(JSON.stringify(response.body));
 		});
 		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 		const { port } = server.address() as AddressInfo;
@@ -24,6 +32,12 @@ describe("SignaloidClient error mapping", () => {
 			{ method: "apiKey", key: "test-key" },
 			{ overrideEndpoints: { api: `http://127.0.0.1:${port}` } },
 		);
+	});
+
+	beforeEach(() => {
+		queue = [];
+		requests = [];
+		requestTimes = [];
 	});
 
 	afterAll(async () => {
@@ -124,5 +138,64 @@ describe("SignaloidClient error mapping", () => {
 		canned = { status, body: { error: "Error", message: "Refused." } };
 
 		await expect(client.tiers.list()).rejects.toMatchObject({ code, status, errorType: "Error" });
+	});
+
+	describe("503 with Retry-After", () => {
+		const busy: CannedResponse = {
+			status: 503,
+			headers: { "Retry-After": "0" },
+			body: { error: "Service Unavailable", message: "Busy." },
+		};
+
+		it("retries a GET and returns the response that follows", async () => {
+			queue = [busy, busy];
+			canned = { status: 200, body: { Tiers: [] } };
+
+			await expect(client.tiers.list()).resolves.toBeDefined();
+			expect(requests).toHaveLength(3);
+		});
+
+		it("waits out a nonzero Retry-After before retrying, then proceeds", async () => {
+			queue = [{ ...busy, headers: { "Retry-After": "1" } }];
+			canned = { status: 200, body: { Tiers: [] } };
+
+			await expect(client.tiers.list()).resolves.toBeDefined();
+			expect(requests).toHaveLength(2);
+			// No retry before the 1 second asked for (less a little timer slack), and the retry
+			// does come: not at once, as with no wait, nor after 1 ms, as with seconds read as ms.
+			const wait = requestTimes[1] - requestTimes[0];
+			expect(wait).toBeGreaterThanOrEqual(990);
+			expect(wait).toBeLessThan(3000);
+		});
+
+		it("gives up after 3 retries with the 503 error", async () => {
+			canned = busy;
+
+			await expect(client.tiers.list()).rejects.toMatchObject({ status: 503, retryAfter: 0 });
+			expect(requests).toHaveLength(4);
+		});
+
+		it("does not wait out a Retry-After above 30 seconds", async () => {
+			canned = { ...busy, headers: { "Retry-After": "120" } };
+
+			await expect(client.tiers.list()).rejects.toMatchObject({ status: 503, retryAfter: 120 });
+			expect(requests).toHaveLength(1);
+		});
+
+		it("does not retry a 503 without Retry-After", async () => {
+			canned = { ...busy, headers: {} };
+
+			await expect(client.tiers.list()).rejects.toMatchObject({ status: 503 });
+			expect(requests).toHaveLength(1);
+		});
+
+		it("does not retry a request that is not a GET", async () => {
+			canned = busy;
+
+			await expect(client.buckets.create({ Name: "b" } as never)).rejects.toMatchObject({
+				status: 503,
+			});
+			expect(requests).toEqual(["POST /buckets"]);
+		});
 	});
 });

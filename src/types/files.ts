@@ -1,33 +1,39 @@
+import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
+
 export type FileListItem = {
-	path: string;
-	last_modified: number;
-	size: number;
-	etag: string;
+	/** Path relative to the user's storage root. Directories end with `/`. */
+	Path: string;
+	/** Unix timestamp in milliseconds. */
+	LastModified: number;
+	/** Size in bytes. */
+	Size: number;
+	ETag: string;
 };
 
 export type FileItem = {
-	download_url?: string;
-	last_modified?: number;
-	content_type?: string;
-	size?: number;
-	owner?: string;
-	etag?: string;
+	/** Pre-signed download URL. Present only when the request asks for a download. */
+	DownloadURL?: string;
+	/** Unix timestamp in milliseconds. */
+	LastModified?: number;
+	ContentType?: string;
+	/** Size in bytes. */
+	Size?: number;
+	Owner?: string;
+	ETag?: string;
 };
 
-export type ListFilesResponse = {
-	count: number;
-	items: FileListItem[];
-	nextContinuationToken?: string;
+export type ListFilesResponse = PaginatedResponse & {
+	Count: number;
+	Files: FileListItem[];
 };
 
-export type ListFilesQueryParams = {
+export type ListFilesQueryParams = PaginationQueryParams & {
 	path?: string;
-	startKey?: string;
 };
 
 export type UploadFileResponse = {
-	message: string;
-	upload_url?: string;
+	/** Pre-signed URL to upload the file content to with an HTTP PUT. */
+	UploadURL: string;
 };
 
 export type CreateDirectoryResponse = {

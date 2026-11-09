@@ -1,13 +1,16 @@
-import { AxiosInstance } from "axios";
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import {
 	FileItem,
+	FileListItem,
 	ListFilesResponse,
 	ListFilesQueryParams,
 	UploadFileResponse,
 	CreateDirectoryResponse,
 	DeleteFileResponse,
 } from "../types/files";
+import { paginationParams } from "../utils/listParams";
+import { listAllItems } from "../utils/paginate";
+import type { ListAllOptions } from "../types/pagination";
 
 export function encodeStoragePath(path: string): string {
 	return path.split("/").map(encodeURIComponent).join("/");
@@ -16,17 +19,24 @@ export function encodeStoragePath(path: string): string {
 export class FilesManager {
 	constructor(private readonly client: AxiosInstance) {}
 
+	/** One page of Files. See `cursor` for the next one. */
 	public async list(options?: ListFilesQueryParams): Promise<ListFilesResponse> {
-		const params: Record<string, string> = {};
+		const params = paginationParams(options);
 		if (options?.path) {
 			params.path = options.path;
-		}
-		if (options?.startKey) {
-			params.startKey = options.startKey;
 		}
 
 		const response = await this.client.get("/files", { params });
 		return response.data;
+	}
+
+	/** Every File under `path` across all pages, read 100 per page unless `limit` says otherwise. */
+	public async listAll(options?: ListAllOptions<ListFilesQueryParams>): Promise<FileListItem[]> {
+		return listAllItems(
+			(query) => this.list(query),
+			options,
+			(page) => page.Files,
+		);
 	}
 
 	public async get(path: string, download?: boolean): Promise<FileItem | Blob> {
@@ -66,27 +76,26 @@ export class FilesManager {
 		const response = await this.client.put(`/files/${encodeStoragePath(path)}`, null, { params });
 		const uploadData = response.data as UploadFileResponse;
 
-		// If we get a presigned URL, use it to upload the file
-		if (uploadData.upload_url) {
-			// Convert content to appropriate format for upload
-			let uploadContent: Blob | ArrayBuffer | string = content;
-
-			if (typeof content === "string") {
-				uploadContent = new Blob([content], { type: "text/plain" });
-			}
-
-			// Upload to the presigned URL
-			const uploadResponse = await axios.put(uploadData.upload_url, uploadContent, {
-				headers: {
-					"Content-Type": "application/octet-stream",
-				},
-			});
-
-			return { message: "File uploaded successfully" };
+		// Without a presigned URL nothing has been uploaded, so fail rather than report success.
+		if (!uploadData.UploadURL) {
+			throw new Error("The API did not return an UploadURL for the file upload");
 		}
 
-		// If no presigned URL, assume direct upload worked
-		return { message: uploadData.message || "File uploaded successfully" };
+		// Convert content to appropriate format for upload
+		let uploadContent: Blob | ArrayBuffer | string = content;
+
+		if (typeof content === "string") {
+			uploadContent = new Blob([content], { type: "text/plain" });
+		}
+
+		// Upload to the presigned URL. axios rejects on a non-2xx status.
+		await axios.put(uploadData.UploadURL, uploadContent, {
+			headers: {
+				"Content-Type": "application/octet-stream",
+			},
+		});
+
+		return { message: "File uploaded successfully" };
 	}
 
 	public async createDirectory(path: string): Promise<CreateDirectoryResponse> {

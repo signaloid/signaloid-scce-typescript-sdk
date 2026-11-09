@@ -104,6 +104,27 @@ describe("CoresManager", () => {
 		expect(core.DependencyTracking).toBe("Advanced");
 	});
 
+	it.each(["Mercury", "Europa"] as const)(
+		"creates a %s core with Advanced dependency tracking",
+		async (microarchitecture) => {
+			if (!tierPermits(user, "C0Pro", microarchitecture)) {
+				return;
+			}
+
+			const core = await coresManager.create({
+				Name: `Test ${microarchitecture} Core`,
+				Class: "C0Pro",
+				Microarchitecture: microarchitecture,
+				DependencyTracking: "Advanced",
+				Precision: 128,
+			});
+			createdCores.push(core.CoreID);
+
+			expect(core.Microarchitecture).toBe(microarchitecture);
+			expect(core.DependencyTracking).toBe("Advanced");
+		},
+	);
+
 	it("rejects a dependency tracking mode the microarchitecture does not support", async () => {
 		// Athens is permitted with C0Pro, so a 400 can only be about the tracking mode.
 		if (!tierPermits(user, "C0Pro", "Athens")) {
@@ -209,8 +230,13 @@ describe("CoresManager", () => {
 		const response = await coresManager.list({ default: true });
 
 		expect(response.Cores).toBeInstanceOf(Array);
-		expect(response.Cores.length).toBeGreaterThan(0);
 		expect(response.UserID).toBeDefined();
+	});
+
+	it("lists default cores across all pages", async () => {
+		const cores = await coresManager.listAll({ default: true });
+
+		expect(cores.length).toBeGreaterThan(0);
 	});
 
 	it("gets core details", async () => {

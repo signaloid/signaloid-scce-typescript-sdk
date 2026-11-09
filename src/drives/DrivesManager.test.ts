@@ -37,12 +37,6 @@ describe("DrivesManager", () => {
 				ResourceType: "Bucket",
 				Location: "eu-west-2",
 			},
-			{
-				Object: "DataSource",
-				ResourceID: "test-gateway",
-				ResourceType: "Gateway",
-				Location: "eu-west-2",
-			},
 		];
 
 		const payload: DriveRequest = {
@@ -65,19 +59,19 @@ describe("DrivesManager", () => {
 	it("lists drives", async () => {
 		const response = await drivesManager.list();
 
-		expect(response.drive_ids).toBeInstanceOf(Array);
-		expect(typeof response.drive_count).toBe("number");
-		expect(response.user_id).toBeDefined();
+		expect(response.DriveIDs).toBeInstanceOf(Array);
+		expect(typeof response.Count).toBe("number");
+		expect(response.UserID).toBeDefined();
 	});
 
 	it("gets drive details", async () => {
 		const drives = await drivesManager.list();
-		if (drives.drive_ids.length === 0) {
+		if (drives.DriveIDs.length === 0) {
 			console.warn("No drives available for testing");
 			return;
 		}
 
-		const driveId = drives.drive_ids[0];
+		const driveId = drives.DriveIDs[0];
 		const drive = await drivesManager.getOne(driveId);
 
 		expect(drive.DriveID).toBe(driveId);

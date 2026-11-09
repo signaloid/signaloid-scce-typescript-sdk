@@ -3,6 +3,7 @@ import { sanitizeChannelName } from "../utils/sanitizeChannelName";
 import { SdkError } from "../errors/SdkError";
 import { ERROR_CODES } from "../errors/codes";
 import { unrefTimer } from "../utils/timers";
+import type { RealtimeEvent } from "../types/realtime";
 
 type EventType = "message" | "error" | "subscribe_success" | "unsubscribe_success";
 type Callback = (msg: any) => void;
@@ -20,10 +21,13 @@ export class SubscriptionClient {
 	}
 
 	/**
-	 * Registers a callback for a specific event type.
+	 * Registers a callback for a specific event type. A `message` callback receives the
+	 * parsed event, `{ EventType, Timestamp, Data }`.
 	 * @param event The type of event to listen for.
 	 * @param callback The function to be called when the event occurs.
 	 */
+	public on(event: "message", callback: (event: RealtimeEvent) => void): void;
+	public on(event: Exclude<EventType, "message">, callback: Callback): void;
 	public on(event: EventType, callback: Callback) {
 		if (!this.callbacks.has(event)) {
 			this.callbacks.set(event, new Set());
@@ -36,6 +40,8 @@ export class SubscriptionClient {
 	 * @param event The event type.
 	 * @param callback The callback to remove.
 	 */
+	public off(event: "message", callback: (event: RealtimeEvent) => void): void;
+	public off(event: Exclude<EventType, "message">, callback: Callback): void;
 	public off(event: EventType, callback: Callback) {
 		const cbs = this.callbacks.get(event);
 		if (cbs) {

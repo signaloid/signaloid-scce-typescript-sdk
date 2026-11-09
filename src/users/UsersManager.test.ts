@@ -7,6 +7,8 @@ const SUPPORTED_DEPENDENCY_TRACKING: Record<Microarchitecture, DependencyTrackin
 	Athens: ["None", "Basic"],
 	Rome: ["None", "Basic"],
 	Jupiter: ["Advanced"],
+	Mercury: ["Advanced"],
+	Europa: ["Advanced"],
 	Bypass: ["None"],
 	Reference: ["None"],
 	Native: ["None"],
@@ -56,6 +58,8 @@ describe("UsersManager", () => {
 		expect(user.CoreClasses.map((coreClass) => coreClass.Name)).not.toContain("C0");
 		expect(user.Microarchitectures.length).toBeGreaterThan(0);
 		for (const microarchitecture of user.Microarchitectures) {
+			// Fail on a name the SDK does not know, rather than on an undefined lookup below.
+			expect(Object.keys(SUPPORTED_DEPENDENCY_TRACKING)).toContain(microarchitecture.Name);
 			// The order of the modes carries no meaning, so compare them sorted.
 			expect([...microarchitecture.DependencyTracking].sort()).toEqual(
 				[...SUPPORTED_DEPENDENCY_TRACKING[microarchitecture.Name]].sort(),
