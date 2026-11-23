@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	DriveDetails,
 	DriveRequest,
@@ -33,17 +34,17 @@ export class DrivesManager {
 		return response.data;
 	}
 
-	public async create(payload: DriveRequest): Promise<DriveDetails> {
+	public async create(payload: DriveRequest): Promise<DriveDetails & SuccessMessage> {
 		const response = await this.client.post("/drives", payload);
 		return response.data;
 	}
 
-	public async update(driveID: string, payload: DrivePatchRequest): Promise<{ message: string }> {
+	public async update(driveID: string, payload: DrivePatchRequest): Promise<SuccessMessage> {
 		const response = await this.client.patch(`/drives/${driveID}`, payload);
 		return response.data;
 	}
 
-	public async delete(driveID: string): Promise<{ message: string }> {
+	public async delete(driveID: string): Promise<SuccessMessage> {
 		const response = await this.client.delete(`/drives/${driveID}`);
 		return response.data;
 	}

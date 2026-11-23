@@ -65,7 +65,7 @@ jest.mock("../runtime/ws", () => {
 			return this.sent.filter((frame) => frame.type === "subscribe");
 		}
 	}
-	return { WSClass: FakeWebSocket, hasNodeTerminate: false, hasNodeRemoveAllListeners: false };
+	return { WSClass: FakeWebSocket };
 });
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

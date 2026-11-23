@@ -5,3 +5,4 @@ export { SdkError } from "./errors/SdkError";
 export { ERROR_CODES } from "./errors/codes";
 export { UNLIMITED_LIMIT_THRESHOLD } from "./constants/tiers";
 export { paginate } from "./utils/paginate";
+export { getStopReason } from "./utils/stopReason";

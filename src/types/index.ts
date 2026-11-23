@@ -1,6 +1,8 @@
+import type { OAuthOptions } from "./auth";
+
 export type ApiKeyAuth = { method: "apiKey"; key: string };
 export type JwtAuth = { method: "jwt"; token: string };
-export type EmailAuth = { method: "email" };
+export type EmailAuth = { method: "email"; oauth?: OAuthOptions };
 
 export type AuthOptions = ApiKeyAuth | JwtAuth | EmailAuth;
 export type AuthMethod = AuthOptions["method"];
@@ -13,8 +15,23 @@ export type OverrideEndpoints = {
 	publicHost?: string;
 };
 
+/** A Cognito user pool and an app client of that pool. */
+export type CognitoOverrides = {
+	userPoolId: string;
+	userPoolClientId: string;
+};
+
+export type AuthManagerOptions = {
+	cognito?: CognitoOverrides;
+	manageAmplifyConfig?: boolean;
+};
+
 export type ClientOptions = RealtimeClientOptions & {
 	overrideEndpoints?: OverrideEndpoints;
+	/** Cognito pool in place of the environment's, for email sign-in only. Ignored, with a warning, when Amplify already uses another pool. */
+	cognito?: CognitoOverrides;
+	/** Set to false when the app configures Amplify itself, which makes `cognito` and `oauth` have no effect. The SDK also leaves alone an Amplify that the app has configured. */
+	manageAmplifyConfig?: boolean;
 };
 
 export type RealtimeState = "idle" | "connecting" | "open" | "reconnecting" | "closed";
@@ -37,6 +54,9 @@ export type TraceVariable = {
 	Expression: string;
 };
 
+/** The API's confirmation on a create, update or delete that succeeded, such as "Core created successfully." */
+export type SuccessMessage = { message: string };
+
 /** `T` with every property optional, except that at least one must be present. */
 export type AtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> & Partial<Omit<T, K>> }[keyof T];
 
@@ -50,6 +70,7 @@ export type DataSource = {
 	Location: string;
 };
 
+export type * from "./auth";
 export type * from "./builds";
 export type * from "./tasks";
 export type * from "./repositories";

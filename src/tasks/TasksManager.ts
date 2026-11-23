@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	CreateTaskResponse,
 	ListTasksQueryParams,
@@ -77,18 +78,25 @@ export class TasksManager {
 		return response.data;
 	}
 
-	public async deleteOne(taskID: string): Promise<void> {
-		await this.client.delete(`/tasks/${taskID}`);
+	public async deleteOne(taskID: string): Promise<SuccessMessage> {
+		const response = await this.client.delete<SuccessMessage>(`/tasks/${taskID}`);
+		return response.data;
 	}
 
-	public async cancel(taskID: string): Promise<void> {
-		await this.client.post(`/tasks/${taskID}/cancel`);
+	public async cancel(taskID: string): Promise<SuccessMessage> {
+		const response = await this.client.post<SuccessMessage>(`/tasks/${taskID}/cancel`);
+		return response.data;
 	}
 
 	public async getStatus(taskID: string): Promise<string> {
 		return (await this.getOne(taskID)).Status;
 	}
 
+	/**
+	 * Waits until the task reaches a final status, and returns it. A Task that runs longer than
+	 * its `MaxDurationSeconds` ends `Stopped`. To tell that apart from other stops, pass the
+	 * result of `getOne()` to `getStopReason()`.
+	 */
 	public async waitForTask(
 		taskID: string,
 		options: { timeoutSec?: number; userId?: string; isPublic?: boolean } = {},

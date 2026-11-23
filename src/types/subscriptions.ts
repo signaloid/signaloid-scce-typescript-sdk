@@ -1,3 +1,5 @@
+import type { SuccessMessage } from ".";
+
 /** The tiers `PUT /subscriptions` accepts. */
 export type SubscribableTier = "FreeTier" | "ProTier" | "EnterpriseTierS" | "EnterpriseTierM" | "EnterpriseTierL";
 
@@ -22,3 +24,5 @@ export type SubscriptionDetails = {
 export type SubscriptionUpdateRequest = {
 	Tier: SubscribableTier;
 };
+
+export type SubscriptionUpdateResponse = { subscription: SubscriptionDetails } & SuccessMessage;

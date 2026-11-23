@@ -1,20 +1,20 @@
-declare const __BROWSER__: boolean;
+/**
+ * The parts of a WebSocket class the realtime client uses. Both the browser's global
+ * WebSocket and the ws package's WebSocket match it.
+ */
+export interface WebSocketClassInterface {
+	new (url: string, protocols?: string | string[]): unknown;
+	readonly OPEN?: number;
+	readonly CONNECTING?: number;
+}
 
-export let WSClass: any;
-export let hasNodeTerminate = false;
-export let hasNodeRemoveAllListeners = false;
+/** The WebSocket class the realtime client opens, set by the entry point for its runtime. */
+export let WSClass: WebSocketClassInterface | undefined;
 
-const RUNTIME_IS_BROWSER = typeof window !== "undefined" && typeof (window as any).WebSocket !== "undefined";
-
-const isBrowser = typeof __BROWSER__ !== "undefined" ? __BROWSER__ : RUNTIME_IS_BROWSER;
-
-if (isBrowser) {
-	// Browser: use the global WebSocket
-	WSClass = (globalThis as any).WebSocket;
-} else {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	const wsMod = require("ws");
-	WSClass = wsMod?.default ?? wsMod;
-	hasNodeTerminate = true;
-	hasNodeRemoveAllListeners = true;
+/**
+ * Sets the WebSocket class the realtime client opens.
+ * @param webSocketClass - The runtime's WebSocket class, or undefined if it has none.
+ */
+export function useWebSocket(webSocketClass: WebSocketClassInterface | undefined): void {
+	WSClass = webSocketClass;
 }

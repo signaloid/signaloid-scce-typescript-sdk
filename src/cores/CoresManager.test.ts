@@ -82,7 +82,7 @@ describe("CoresManager", () => {
 		expect(core.Class).toBe("C0Pro");
 		expect(core.Microarchitecture).toBe("Athens");
 		expect(core.DependencyTracking).toBe("None");
-		expect(core.MemorySize).toBe(8_192_000_000);
+		expect(core.MemorySize).toBe(8589934592);
 		expect(core.Precision).toBe(128);
 	});
 
@@ -156,7 +156,7 @@ describe("CoresManager", () => {
 		expect(core.Microarchitecture).toBe("Native");
 		expect(core.Precision).toBe(0);
 		expect(core.DependencyTracking).toBe("None");
-		expect(core.MemorySize).toBe(8_192_000_000);
+		expect(core.MemorySize).toBe(8589934592);
 	});
 
 	it("rejects a Precision other than 0 on an r7i core", async () => {

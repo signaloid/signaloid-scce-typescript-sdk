@@ -199,3 +199,43 @@ describe("SignaloidClient error mapping", () => {
 		});
 	});
 });
+
+describe("SignaloidClient errors without a response", () => {
+	let server: http.Server;
+
+	async function clientFor(handler: http.RequestListener): Promise<SignaloidClient> {
+		server = http.createServer(handler);
+		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+		const { port } = server.address() as AddressInfo;
+		return createClient(
+			{ method: "apiKey", key: "test-key" },
+			{ overrideEndpoints: { api: `http://127.0.0.1:${port}` } },
+		);
+	}
+
+	afterEach(async () => {
+		server.closeAllConnections();
+		await new Promise((resolve) => server.close(resolve));
+	});
+
+	it("raises API_NETWORK_ERROR when the connection drops without a response", async () => {
+		const client = await clientFor((req) => req.socket.destroy());
+
+		await expect(client.tiers.list()).rejects.toMatchObject({
+			name: "SdkError",
+			code: ERROR_CODES.API_NETWORK_ERROR,
+			message: "Could not connect to the server. Check your internet connection, then try again.",
+		});
+	});
+
+	it("raises API_TIMEOUT when the request times out", async () => {
+		const client = await clientFor(() => {});
+		(client.tiers as any).client.defaults.timeout = 100;
+
+		await expect(client.tiers.list()).rejects.toMatchObject({
+			name: "SdkError",
+			code: ERROR_CODES.API_TIMEOUT,
+			message: "The request took too long. Please try again.",
+		});
+	});
+});

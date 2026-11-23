@@ -1,5 +1,5 @@
 import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
-import type { ResourceType } from ".";
+import type { ResourceType, SuccessMessage } from ".";
 
 export type TaskStatus =
 	| "Accepted"
@@ -13,11 +13,18 @@ export type TaskStatus =
 export type CreateTaskRequest = {
 	Arguments?: string;
 	DataSources?: TaskDataSource[];
+	/**
+	 * The longest the program may run, in seconds, from 1 to 28800 (8 hours). Leave it out for
+	 * the platform maximum of 8 hours. It does not count the time Signaloid takes to set up the
+	 * run. A Task that runs longer ends with the status `Stopped`, and `getStopReason()`
+	 * returns `ErrMaxDurationExceeded` for it. Tasks do not take this limit from their Build.
+	 */
+	MaxDurationSeconds?: number;
 };
 
 export type CreateTaskResponse = {
 	TaskID: string;
-};
+} & SuccessMessage;
 
 export type TaskStatusTransition = {
 	Status: TaskStatus;
@@ -48,6 +55,8 @@ export type TaskDetail = {
 	StatusTransitions: TaskStatusTransition[];
 	Arguments: string;
 	DataSources: TaskDataSource[];
+	/** The limit set when the Task was created. Absent means the platform maximum of 8 hours. */
+	MaxDurationSeconds?: number;
 	StartedAt: number;
 	UpdatedAt: number;
 	CreatedAt: number;

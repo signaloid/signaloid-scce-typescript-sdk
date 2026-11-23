@@ -4,9 +4,6 @@ import { PlotOptions, PlotRequest, PlotResponse } from "../types/plotting";
 function buildPlotQuery(options?: PlotOptions): Record<string, string> {
 	const q: Record<string, string> = {};
 	if (!options) return q;
-	if (typeof options.fullResolution === "boolean") {
-		q.fullResolution = String(options.fullResolution);
-	}
 	if (typeof options.xLimMin === "number") q.xLimMin = String(options.xLimMin);
 	if (typeof options.xLimMax === "number") q.xLimMax = String(options.xLimMax);
 	if (typeof options.yLimMin === "number") q.yLimMin = String(options.yLimMin);

@@ -1,4 +1,4 @@
-import { WSClass, hasNodeTerminate, hasNodeRemoveAllListeners } from "../runtime/ws";
+import { WSClass } from "../runtime/ws";
 import { AuthManager } from "../auth/AuthManager";
 import { Channel } from "./Channel";
 import { SdkError } from "../errors/SdkError";
@@ -398,12 +398,22 @@ export class RealtimeClient {
 			};
 
 			const ackTimeout = setTimeout(() => {
-				fail(new SdkError(ERROR_CODES.REALTIME_TIMEOUT, "WebSocket connection timeout"));
+				fail(
+					new SdkError(
+						ERROR_CODES.REALTIME_TIMEOUT,
+						"Live status updates took too long to connect.",
+					),
+				);
 			}, timeoutSec * 1000);
 
 			bind(ws, "error", (err: any) => {
-				const message = err?.message || String(err);
-				fail(new SdkError(ERROR_CODES.REALTIME_FATAL, "WebSocket crashed: " + message));
+				fail(
+					new SdkError(
+						ERROR_CODES.REALTIME_FATAL,
+						"Could not connect to live status updates.",
+						err,
+					),
+				);
 			});
 
 			bind(ws, "close", () => {
@@ -461,8 +471,15 @@ export class RealtimeClient {
 							return;
 						}
 						const channel = this.channelsById.get(msg.id);
-						channel?.emit("error", err);
-						fail(err);
+						const userErr = new SdkError(
+							err.code,
+							channel
+								? "Could not start live status updates."
+								: "Could not connect to live status updates.",
+							msg,
+						);
+						channel?.emit("error", userErr);
+						fail(userErr);
 						return;
 					} else if (msg.type === "data") {
 						const event = msg.payload?.data ?? msg.event;
@@ -544,13 +561,13 @@ function reconnectDelay(attempt: number): number {
 }
 
 function removeAllListenersSafe(ws: WSLike) {
-	if (hasNodeRemoveAllListeners && typeof ws.removeAllListeners === "function") {
+	if (typeof ws.removeAllListeners === "function") {
 		ws.removeAllListeners();
 	}
 }
 
 function terminateSafe(ws: WSLike) {
-	if (hasNodeTerminate && typeof ws.terminate === "function") {
+	if (typeof ws.terminate === "function") {
 		ws.terminate();
 	} else {
 		// Fallback to graceful close if terminate is not available

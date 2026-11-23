@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import { AuthManager } from "../auth/AuthManager";
 import {
 	BucketDetails,
@@ -34,17 +35,17 @@ export class BucketsManager {
 		return response.data;
 	}
 
-	public async create(payload: BucketRequest): Promise<BucketDetails> {
+	public async create(payload: BucketRequest): Promise<BucketDetails & SuccessMessage> {
 		const response = await this.client.post("/buckets", payload);
 		return response.data;
 	}
 
-	public async update(bucketID: string, payload: BucketPatchRequest): Promise<{ message: string }> {
+	public async update(bucketID: string, payload: BucketPatchRequest): Promise<SuccessMessage> {
 		const response = await this.client.patch(`/buckets/${bucketID}`, payload);
 		return response.data;
 	}
 
-	public async delete(bucketID: string): Promise<{ message: string }> {
+	public async delete(bucketID: string): Promise<SuccessMessage> {
 		const response = await this.client.delete(`/buckets/${bucketID}`);
 		return response.data;
 	}

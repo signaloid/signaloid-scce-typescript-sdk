@@ -117,7 +117,7 @@ describe("BucketsManager", () => {
 			};
 
 			const result = await bucketsManager.update(bucket.BucketID, updatePayload);
-			expect(result.message).toBe("OK");
+			expect(result.message).toBe("Data Source configuration updated successfully.");
 
 			// Verify the update
 			const updatedBucket = await bucketsManager.getOne(bucket.BucketID);
@@ -140,7 +140,7 @@ describe("BucketsManager", () => {
 			// Delete it
 			const result = await bucketsManager.delete(bucket.BucketID);
 
-			expect(result.message).toBe("OK");
+			expect(result.message).toBe("Data Source disconnected successfully.");
 
 			// Verify it is gone
 			await expect(bucketsManager.getOne(bucket.BucketID)).rejects.toThrow();
