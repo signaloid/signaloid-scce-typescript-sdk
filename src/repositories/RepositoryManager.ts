@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import { ERROR_CODES } from "../errors/codes";
 import { SdkError } from "../errors/SdkError";
 import {
@@ -63,7 +64,7 @@ export class RepositoriesManager {
 	}
 
 	/** Fails with 403 when the Core is not on the caller's tier. */
-	public async connect(payload: RepositoryRequest): Promise<RepositoryDetails> {
+	public async connect(payload: RepositoryRequest): Promise<RepositoryDetails & SuccessMessage> {
 		const response = await this.client.post("/repositories", payload);
 		return response.data;
 	}
@@ -77,7 +78,7 @@ export class RepositoriesManager {
 		repositoryID: string,
 		payload: RepositoryPatchRequest,
 		options?: { remove?: RepositoryPatchRemovableField[] },
-	): Promise<RepositoryDetails> {
+	): Promise<RepositoryDetails & SuccessMessage> {
 		let params: URLSearchParams | undefined;
 		if (options?.remove && options.remove.length > 0) {
 			params = new URLSearchParams();
@@ -98,12 +99,13 @@ export class RepositoriesManager {
 	 * from the repository rather than a permanent deletion. Use `disconnect()` instead,
 	 * which performs the same action but better describes the intent.
 	 */
-	public async delete(repositoryID: string): Promise<void> {
-		await this.client.delete(`/repositories/${repositoryID}`);
+	public async delete(repositoryID: string): Promise<SuccessMessage> {
+		return this.disconnect(repositoryID);
 	}
 
-	public async disconnect(repositoryID: string): Promise<void> {
-		await this.client.delete(`/repositories/${repositoryID}`);
+	public async disconnect(repositoryID: string): Promise<SuccessMessage> {
+		const response = await this.client.delete<SuccessMessage>(`/repositories/${repositoryID}`);
+		return response.data;
 	}
 
 	public async getBuilds(

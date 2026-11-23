@@ -33,6 +33,50 @@ describe("paginated listings", () => {
 		expect(get).toHaveBeenCalledWith("/webhooks", { params: { cursor: "tok", limit: 10 } });
 	});
 
+	describe("webhooks helpers read every page", () => {
+		const webhook = (WebhookID: string, fields: object = {}) => ({
+			WebhookID,
+			Status: "active",
+			Events: ["task-status"],
+			FailureCount: 0,
+			...fields,
+		});
+		// Two pages, so that a helper reading only the first misses "b" and "c".
+		const pages = {
+			"": page({ Webhooks: [webhook("a")], Count: 1 }, "t1"),
+			t1: page({
+				Webhooks: [
+					webhook("b", {
+						Status: "disabled",
+						Events: [],
+						FailureCount: 2,
+						LastDeliveryStatus: "failed-500",
+					}),
+					webhook("c"),
+				],
+				Count: 2,
+			}),
+		};
+		const manager = () => new WebhooksManager(stubClient(pages).client);
+
+		it("getStats", async () => {
+			const stats = await manager().getStats();
+			expect(stats).toMatchObject({ total: 3, active: 2, disabled: 1, withFailures: 1 });
+			expect(stats.recentlyFailed.map((w) => w.WebhookID)).toEqual(["b"]);
+		});
+
+		it("getByStatus", async () => {
+			expect((await manager().getDisabled()).map((w) => w.WebhookID)).toEqual(["b"]);
+		});
+
+		it("getByEventType", async () => {
+			expect((await manager().getByEventType("task-status")).map((w) => w.WebhookID)).toEqual([
+				"a",
+				"c",
+			]);
+		});
+	});
+
 	it("organizations.listAllUsers pages one list, with its status on every request", async () => {
 		const { client, get } = stubClient({
 			"": page({ Users: [{ Email: "a@x" }], Count: 1 }, "t1"),

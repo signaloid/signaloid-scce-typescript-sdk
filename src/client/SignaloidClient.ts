@@ -1,7 +1,7 @@
 import { AuthManager } from "../auth/AuthManager";
 import { RealtimeClient } from "../realtime/RealtimeClient";
 import { AuthOptions, ClientOptions } from "../types";
-import { DEFAULT_ENDPOINTS } from "../constants/endpoints";
+import { getDefaultEndpoints } from "../constants/endpoints";
 import { BuildsManager } from "../builds/BuildsManager";
 import axios from "axios";
 import { RepositoriesManager } from "../repositories/RepositoryManager";
@@ -52,7 +52,7 @@ function parseRetryAfter(header: unknown): number | undefined {
 }
 
 // A GET that gets 503 with Retry-After is retried this many times. The API sends that when the
-// database was too busy to read a whole page, so the same request should succeed shortly.
+// database was too busy to answer, so the same request should succeed shortly.
 const MAX_BUSY_RETRIES = 3;
 // A longer Retry-After is passed to the caller instead of waited out.
 const MAX_BUSY_RETRY_AFTER_SECONDS = 30;
@@ -84,15 +84,19 @@ export class SignaloidClient {
 
 	constructor(authOptions: AuthOptions, clientOptions?: Partial<ClientOptions>) {
 		const endpoints = {
-			...DEFAULT_ENDPOINTS,
+			...getDefaultEndpoints(),
 			...(clientOptions?.overrideEndpoints || {}),
 		};
 
-		this.auth = new AuthManager(authOptions);
+		this.auth = new AuthManager(authOptions, {
+			cognito: clientOptions?.cognito,
+			manageAmplifyConfig: clientOptions?.manageAmplifyConfig,
+		});
 
 		const signaloidApiClient = axios.create({
 			baseURL: endpoints.api,
 			timeout: 10000 /* 10 seconds */,
+			transitional: { clarifyTimeoutError: true },
 		});
 
 		// Authentication configuration
@@ -188,8 +192,24 @@ export class SignaloidClient {
 					);
 				}
 
-				// no response (network / timeout / other)
-				return Promise.reject(err);
+				if (!axios.isAxiosError(err) || err.code === "ERR_CANCELED") {
+					return Promise.reject(err);
+				}
+
+				const details = { code: err.code, message: err.message };
+				return Promise.reject(
+					err.code === "ETIMEDOUT"
+						? new SdkError(
+								ERROR_CODES.API_TIMEOUT,
+								"The request took too long. Please try again.",
+								details,
+							)
+						: new SdkError(
+								ERROR_CODES.API_NETWORK_ERROR,
+								"Could not connect to the server. Check your internet connection, then try again.",
+								details,
+							),
+				);
 			},
 		);
 

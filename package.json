@@ -1,6 +1,6 @@
 {
 	"name": "@signaloid/scce-sdk",
-	"version": "5.0.0",
+	"version": "6.1.2",
 	"description": "Signaloid Cloud Compute Engine API SDK",
 	"author": "Signaloid <developer-support@signaloid.com>",
 	"license": "MIT",
@@ -53,7 +53,8 @@
 		"test": "dotenv -e .env -- jest",
 		"test:integration": "dotenv -e .env -- jest --runInBand",
 		"test:ci": "jest --ci --coverage --watchAll=false --passWithNoTests",
-		"test:unit": "jest --ci src/client/SignaloidClient.errors.test.ts src/cores/CoresManager.listAll.test.ts src/builds/BuildsManager.waitForBuild.test.ts src/utils src/config src/files/FilesManager.encoding.test.ts src/realtime",
+		"test:unit": "jest --ci src/client/SignaloidClient.errors.test.ts src/client/SignaloidClient.successMessages.test.ts src/auth/AuthManager.test.ts src/cores/CoresManager.listAll.test.ts src/builds/BuildsManager.waitForBuild.test.ts src/tasks/TasksManager.createTask.test.ts src/utils src/config src/files/FilesManager.encoding.test.ts src/realtime src/runtime/node.test.ts src/files/FilesManager.upload.test.ts",
+		"test:dist": "npm run build && jest --ci --testPathIgnorePatterns /node_modules/ -- src/runtime/dist.test.ts",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"prepublishOnly": "npm run build"
@@ -83,6 +84,10 @@
 		"testMatch": [
 			"**/*.test.ts"
 		],
+		"testPathIgnorePatterns": [
+			"/node_modules/",
+			"/src/runtime/dist\\.test\\.ts$"
+		],
 		"collectCoverageFrom": [
 			"src/**/*.ts",
 			"!src/**/*.d.ts",
@@ -91,6 +96,9 @@
 		],
 		"coverageDirectory": "coverage",
 		"testTimeout": 30000,
-		"globalSetup": "./jest.global-setup.cjs"
+		"globalSetup": "./jest.global-setup.cjs",
+		"setupFiles": [
+			"./jest.setup.cjs"
+		]
 	}
 }

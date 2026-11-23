@@ -3,6 +3,7 @@ import { RepositoriesManager } from "./RepositoryManager";
 import { RepositoryRequest } from "../types/repositories";
 
 describe("RepositoriesManager", () => {
+	let sdk: ReturnType<typeof createClient>;
 	let reposManager: RepositoriesManager;
 	const createdRepos: string[] = []; // Track repos for cleanup
 
@@ -12,7 +13,7 @@ describe("RepositoriesManager", () => {
 			throw new Error("Missing SIGNALOID_USER_API_KEY environment variable");
 		}
 
-		const sdk = createClient({ method: "apiKey", key: apiKey });
+		sdk = createClient({ method: "apiKey", key: apiKey });
 		reposManager = sdk.repositories;
 	});
 
@@ -48,6 +49,10 @@ describe("RepositoriesManager", () => {
 			expect(repo.Object).toBe("Repository");
 		} catch (error: any) {
 			// Only tolerate API_CONFLICT (URL already connected on this shared account); any other error must fail the test to catch real connect regressions.
+			console.log(error?.message, error?.details);
+			const me = await sdk.users.me().catch((e: any) => e);
+			const github = await sdk.github.getIntegration(me?.UserID).catch((e: any) => e?.message);
+			console.log("Signed in as", me?.Username ?? me?.message, me?.UserID, "with GitHub", github);
 			expect(error?.code).toBe("API_CONFLICT");
 		}
 	});

@@ -1,3 +1,4 @@
+import type { SuccessMessage } from ".";
 import type { Tier, TierCapabilities } from "./tiers";
 import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
@@ -109,7 +110,7 @@ export type UserUpdateResponse = {
 	OnboardingState?: UserOnboardingState;
 	Role?: string;
 	Industry?: string;
-};
+} & SuccessMessage;
 
 /**
  * For a member of a branded organization without a customization of their own, the API builds

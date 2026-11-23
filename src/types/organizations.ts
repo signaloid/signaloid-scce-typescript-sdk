@@ -1,3 +1,4 @@
+import type { SuccessMessage } from ".";
 import type { Tier, TierCapabilities } from "./tiers";
 import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
@@ -44,7 +45,6 @@ export type CreateOrganizationRequest = {
 };
 
 export type CreateOrganizationResponse = {
-	Message: string;
 	OrganizationID: string;
 	Name: string;
 	Tier: Tier;
@@ -52,7 +52,7 @@ export type CreateOrganizationResponse = {
 	DedicatedInstance: boolean;
 	DedicatedInstanceName?: string;
 	CreatedAt: string;
-};
+} & SuccessMessage;
 
 export type OrganizationUser = {
 	UserID: string;
@@ -97,32 +97,29 @@ export type InviteUserRequest = {
 };
 
 export type InviteUserResponse = {
-	Message: string;
 	UserID?: string;
 	Email: string;
 	Role: OrganizationRole;
 	Status?: string;
-};
+} & SuccessMessage;
 
 export type UpdateUserRoleRequest = {
 	Role: OrganizationRole;
 };
 
 export type UpdateUserRoleResponse = {
-	Message: string;
 	UserID: string;
 	PreviousRole?: OrganizationRole;
 	NewRole?: OrganizationRole;
 	Role?: OrganizationRole;
-};
+} & SuccessMessage;
 
 export type RemoveUserResponse = {
-	Message: string;
 	Type: "Active" | "Pending";
 	UserID?: string;
 	Email?: string;
 	RemovedRole: OrganizationRole;
-};
+} & SuccessMessage;
 
 export type OrganizationInvitation = {
 	OrganizationID: string;

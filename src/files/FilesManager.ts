@@ -11,6 +11,8 @@ import {
 import { paginationParams } from "../utils/listParams";
 import { listAllItems } from "../utils/paginate";
 import type { ListAllOptions } from "../types/pagination";
+import { SdkError } from "../errors/SdkError";
+import { ERROR_CODES } from "../errors/codes";
 
 export function encodeStoragePath(path: string): string {
 	return path.split("/").map(encodeURIComponent).join("/");
@@ -89,11 +91,25 @@ export class FilesManager {
 		}
 
 		// Upload to the presigned URL. axios rejects on a non-2xx status.
-		await axios.put(uploadData.UploadURL, uploadContent, {
-			headers: {
-				"Content-Type": "application/octet-stream",
-			},
-		});
+		try {
+			await axios.put(uploadData.UploadURL, uploadContent, {
+				headers: {
+					"Content-Type": "application/octet-stream",
+				},
+			});
+		} catch (err) {
+			throw new SdkError(
+				ERROR_CODES.FILE_UPLOAD_FAILED,
+				"We could not upload the file. Please try again. If this issue persists, please contact Signaloid Support at developer-support@signaloid.com.",
+				axios.isAxiosError(err)
+					? {
+							code: err.code,
+							status: err.response?.status,
+							data: err.response?.data,
+						}
+					: err,
+			);
+		}
 
 		return { message: "File uploaded successfully" };
 	}

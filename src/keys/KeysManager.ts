@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import { KeyDetails, KeyRequest, ListKeysQueryParams, ListKeysResponse } from "../types/keys";
 import { paginationParams } from "../utils/listParams";
 import { listAllItems } from "../utils/paginate";
@@ -22,12 +23,12 @@ export class KeysManager {
 		);
 	}
 
-	public async create(payload: KeyRequest): Promise<KeyDetails> {
+	public async create(payload: KeyRequest): Promise<KeyDetails & SuccessMessage> {
 		const response = await this.client.post("/keys", payload);
 		return response.data;
 	}
 
-	public async delete(keyID: string): Promise<{ message: string }> {
+	public async delete(keyID: string): Promise<SuccessMessage> {
 		const response = await this.client.delete(`/keys/${keyID}`);
 		return response.data;
 	}

@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	CreateSourceBuildRequest,
 	CreateSourceBuildResponse,
@@ -112,17 +113,19 @@ export class BuildsManager {
 		return response.data;
 	}
 
-	public async updateOne(buildID: string, payload: UpdateBuildRequest): Promise<BuildDetails> {
-		const response = await this.client.patch<BuildDetails>(`/builds/${buildID}`, payload);
+	public async updateOne(buildID: string, payload: UpdateBuildRequest): Promise<BuildDetails & SuccessMessage> {
+		const response = await this.client.patch<BuildDetails & SuccessMessage>(`/builds/${buildID}`, payload);
 		return response.data;
 	}
 
-	public async deleteOne(buildID: string): Promise<void> {
-		await this.client.delete(`/builds/${buildID}`);
+	public async deleteOne(buildID: string): Promise<SuccessMessage> {
+		const response = await this.client.delete<SuccessMessage>(`/builds/${buildID}`);
+		return response.data;
 	}
 
-	public async cancel(buildID: string): Promise<void> {
-		await this.client.post(`/builds/${buildID}/cancel`);
+	public async cancel(buildID: string): Promise<SuccessMessage> {
+		const response = await this.client.post<SuccessMessage>(`/builds/${buildID}/cancel`);
+		return response.data;
 	}
 
 	public async getStatus(buildID: string): Promise<string> {
@@ -278,6 +281,9 @@ export class BuildsManager {
 	 * Build status events go only to the owner's private `build-status` channel, whether or
 	 * not the build is public. So the owner gets live events, while any other caller relies on
 	 * the status check that runs every 10 seconds, as does the owner if subscribing fails.
+	 *
+	 * A Build that runs longer than its `MaxDurationSeconds` ends `Stopped`. To tell that apart
+	 * from other stops, pass the result of `getOne()` to `getStopReason()`.
 	 */
 	public async waitForBuild(
 		buildID: string,

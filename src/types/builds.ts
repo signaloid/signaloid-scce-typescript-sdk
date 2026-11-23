@@ -1,5 +1,5 @@
 import type { PaginatedResponse, PaginationQueryParams } from "./pagination";
-import { TraceVariable, DataSource } from ".";
+import { TraceVariable, DataSource, SuccessMessage } from ".";
 import type { DependencyTracking, LegacyCorrelationTracking, StoredMicroarchitecture } from "./cores";
 
 export type BuildStatus =
@@ -11,7 +11,19 @@ export type BuildStatus =
 	| "Stopped"
 	| "Rescheduled";
 
-export type CreateSourceBuildRequest = {
+/** The time limit that both kinds of Build request take. */
+export type BuildMaxDuration = {
+	/**
+	 * The longest the build step may run, in seconds, from 1 to 28800 (8 hours). Leave it out for
+	 * the platform maximum of 8 hours. It does not count the time Signaloid takes to set up the
+	 * build. A Build that runs longer ends with the status `Stopped`, and `getStopReason()`
+	 * returns `ErrMaxDurationExceeded` for it. Tasks created from the Build do not take this
+	 * limit: set `MaxDurationSeconds` on each Task instead.
+	 */
+	MaxDurationSeconds?: number;
+};
+
+export type CreateSourceBuildRequest = BuildMaxDuration & {
 	Code: string;
 	Language: "C" | "C++" | "Fortran";
 	CoreID?: string;
@@ -26,9 +38,9 @@ export type CreateSourceBuildRequest = {
 
 export type CreateSourceBuildResponse = {
 	BuildID: string;
-};
+} & SuccessMessage;
 
-export type CreateRepositoryBuildRequest = {
+export type CreateRepositoryBuildRequest = BuildMaxDuration & {
 	CoreID?: string;
 	/** Must be empty for the `r7i` Core class. */
 	TraceVariables?: TraceVariable[];
@@ -40,7 +52,7 @@ export type CreateRepositoryBuildRequest = {
 
 export type CreateRepositoryBuildResponse = {
 	BuildID: string;
-};
+} & SuccessMessage;
 
 export type ListBuildsQueryParams = PaginationQueryParams & {
 	from?: string;
@@ -139,6 +151,11 @@ export type BuildDetails = {
 	BuildArtifactAvailable?: boolean;
 	BuildCoreSpecs?: BuildCoreSpecs;
 	TraceVariables?: TraceVariable[];
+	/**
+	 * The limit on the build step set when the Build was created. Absent means the platform
+	 * maximum of 8 hours.
+	 */
+	MaxDurationSeconds?: number;
 	IsPublic?: boolean;
 	Stats?: BuildStats;
 };

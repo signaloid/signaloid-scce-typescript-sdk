@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	UserDetails,
 	UserPatchRequest,
@@ -55,12 +56,12 @@ export class UsersManager {
 		return response.data;
 	}
 
-	public async delete(userID: string): Promise<{ message: string }> {
+	public async delete(userID: string): Promise<SuccessMessage> {
 		const response = await this.client.delete(`/users/${userID}`);
 		return response.data;
 	}
 
-	public async logoutAllSessions(userID: string): Promise<{ message: string }> {
+	public async logoutAllSessions(userID: string): Promise<SuccessMessage> {
 		const response = await this.client.post(`/users/${userID}/logout-all-sessions`);
 		return response.data;
 	}

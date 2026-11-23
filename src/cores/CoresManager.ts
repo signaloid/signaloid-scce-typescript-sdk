@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	CoreDetails,
 	CorePatchRequest,
@@ -52,17 +53,17 @@ export class CoresManager {
 		throw new Error(String(firstError) || "Both core requests failed");
 	}
 
-	public async create(payload: CoreRequest): Promise<CoreDetails> {
+	public async create(payload: CoreRequest): Promise<CoreDetails & SuccessMessage> {
 		const response = await this.client.post("/cores", payload);
 		return response.data;
 	}
 
-	public async update(coreID: string, payload: CorePatchRequest): Promise<{ message: string }> {
+	public async update(coreID: string, payload: CorePatchRequest): Promise<SuccessMessage> {
 		const response = await this.client.patch(`/cores/${coreID}`, payload);
 		return response.data;
 	}
 
-	public async delete(coreID: string): Promise<{ message: string }> {
+	public async delete(coreID: string): Promise<SuccessMessage> {
 		const response = await this.client.delete(`/cores/${coreID}`);
 		return response.data;
 	}

@@ -98,7 +98,7 @@ describe("KeysManager", () => {
 			// Delete it
 			const result = await keysManager.delete(key.KeyID);
 
-			expect(result.message).toBe("OK");
+			expect(result.message).toBe("API key deleted successfully.");
 
 			// Verify it is gone
 			const keys = await keysManager.list();

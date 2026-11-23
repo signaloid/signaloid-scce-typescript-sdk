@@ -1,4 +1,5 @@
 import { AxiosInstance } from "axios";
+import { SuccessMessage } from "../types";
 import {
 	CreateWebhookRequest,
 	CreateWebhookResponse,
@@ -6,6 +7,7 @@ import {
 	ListWebhooksResponse,
 	WebhookDetails,
 	UpdateWebhookRequest,
+	UpdateWebhookResponse,
 	WebhookEventType,
 } from "../types/webhooks";
 import { paginationParams } from "../utils/listParams";
@@ -42,38 +44,42 @@ export class WebhooksManager {
 		return response.data;
 	}
 
-	public async update(webhookId: string, payload: UpdateWebhookRequest): Promise<WebhookDetails> {
-		const response = await this.client.put<WebhookDetails>(`/webhooks/${webhookId}`, payload);
+	public async update(webhookId: string, payload: UpdateWebhookRequest): Promise<UpdateWebhookResponse> {
+		const response = await this.client.put<UpdateWebhookResponse>(`/webhooks/${webhookId}`, payload);
 		return response.data;
 	}
 
-	public async delete(webhookId: string): Promise<void> {
-		await this.client.delete(`/webhooks/${webhookId}`);
+	public async delete(webhookId: string): Promise<SuccessMessage> {
+		const response = await this.client.delete<SuccessMessage>(`/webhooks/${webhookId}`);
+		return response.data;
 	}
 
-	public async enable(webhookId: string): Promise<WebhookDetails> {
+	public async enable(webhookId: string): Promise<UpdateWebhookResponse> {
 		return this.update(webhookId, { Status: "active" });
 	}
 
-	public async disable(webhookId: string): Promise<WebhookDetails> {
+	public async disable(webhookId: string): Promise<UpdateWebhookResponse> {
 		return this.update(webhookId, { Status: "disabled" });
 	}
 
-	public async updateUrl(webhookId: string, url: string): Promise<WebhookDetails> {
+	public async updateUrl(webhookId: string, url: string): Promise<UpdateWebhookResponse> {
 		return this.update(webhookId, { URL: url });
 	}
 
-	public async updateEvents(webhookId: string, events: WebhookEventType[]): Promise<WebhookDetails> {
+	public async updateEvents(webhookId: string, events: WebhookEventType[]): Promise<UpdateWebhookResponse> {
 		return this.update(webhookId, { Events: events });
 	}
 
-	public async addEvents(webhookId: string, newEvents: WebhookEventType[]): Promise<WebhookDetails> {
+	public async addEvents(webhookId: string, newEvents: WebhookEventType[]): Promise<UpdateWebhookResponse> {
 		const webhook = await this.getOne(webhookId);
 		const updatedEvents = [...new Set([...webhook.Events, ...newEvents])];
 		return this.update(webhookId, { Events: updatedEvents });
 	}
 
-	public async removeEvents(webhookId: string, eventsToRemove: WebhookEventType[]): Promise<WebhookDetails> {
+	public async removeEvents(
+		webhookId: string,
+		eventsToRemove: WebhookEventType[],
+	): Promise<UpdateWebhookResponse> {
 		const webhook = await this.getOne(webhookId);
 		const updatedEvents = webhook.Events.filter((event) => !eventsToRemove.includes(event));
 
@@ -84,9 +90,9 @@ export class WebhooksManager {
 		return this.update(webhookId, { Events: updatedEvents });
 	}
 
+	/** The webhooks with this status, from every page. */
 	public async getByStatus(status: "active" | "disabled"): Promise<WebhookDetails[]> {
-		const response = await this.list();
-		return response.Webhooks.filter((webhook) => webhook.Status === status);
+		return (await this.listAll()).filter((webhook) => webhook.Status === status);
 	}
 
 	public async getActive(): Promise<WebhookDetails[]> {
@@ -97,14 +103,15 @@ export class WebhooksManager {
 		return this.getByStatus("disabled");
 	}
 
+	/** The webhooks subscribed to this event type, from every page. */
 	public async getByEventType(eventType: WebhookEventType): Promise<WebhookDetails[]> {
-		const response = await this.list();
-		return response.Webhooks.filter(
+		return (await this.listAll()).filter(
 			(webhook) =>
 				webhook.Events && Array.isArray(webhook.Events) && webhook.Events.includes(eventType),
 		);
 	}
 
+	/** Counts over every webhook, from every page. */
 	public async getStats(): Promise<{
 		total: number;
 		active: number;
@@ -112,8 +119,7 @@ export class WebhooksManager {
 		withFailures: number;
 		recentlyFailed: WebhookDetails[];
 	}> {
-		const response = await this.list();
-		const webhooks = response.Webhooks;
+		const webhooks = await this.listAll();
 
 		const stats = {
 			total: webhooks.length,

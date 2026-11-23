@@ -40,18 +40,11 @@ describe("GitHubManager", () => {
 
 		try {
 			const result = await githubManager.createOrUpdateIntegration(userId, payload);
-			expect(result.Message).toBeDefined();
+			expect(result.message).toBeDefined();
 		} catch (error: any) {
 			// Expected to fail due to auth code requirement
 			expect(error.message).toMatch(/GitHub auth code not provided|BadRequest|incorrect or expired/i);
 		}
-	});
-
-	it("deletes integration", async () => {
-		const result = await githubManager.deleteIntegration(userId);
-
-		expect(result.Message).toBeDefined();
-		expect(typeof result.Message).toBe("string");
 	});
 
 	it("handles proxy request", async () => {

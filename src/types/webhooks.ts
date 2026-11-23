@@ -1,4 +1,4 @@
-import type { AtLeastOne } from ".";
+import type { AtLeastOne, SuccessMessage } from ".";
 import type { BuildStatusEventData, TaskStatusEventData, UsageEventData } from "./realtime";
 import type { CursorPaginatedResponse, CursorQueryParams } from "./pagination";
 
@@ -24,7 +24,7 @@ export type CreateWebhookRequest = {
 export type CreateWebhookResponse = WebhookDetails & {
 	/** Keep it: it verifies `Signaloid-Webhook-Signature` and cannot be fetched again. */
 	Secret: string;
-};
+} & SuccessMessage;
 
 export type UpdateWebhookRequest = AtLeastOne<{
 	URL: string;
@@ -46,6 +46,8 @@ export type WebhookDetails = {
 	LastDeliveryStatus: string | null;
 	LastDeliveryTime: string | null;
 };
+
+export type UpdateWebhookResponse = WebhookDetails & SuccessMessage;
 
 export type ListWebhooksQueryParams = CursorQueryParams;
 

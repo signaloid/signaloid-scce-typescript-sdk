@@ -1,7 +1,7 @@
-export function setupRuntime() {
-	if (typeof (globalThis as any).crypto === "undefined") {
-		// Only ever included in Node build
-		const { webcrypto } = require("node:crypto");
-		(globalThis as any).crypto = webcrypto;
-	}
+import WebSocket from "ws";
+import { useWebSocket } from "./ws";
+
+/** Prepares the SDK for Node by giving the realtime client the ws package's WebSocket. */
+export function setupRuntime(): void {
+	useWebSocket(WebSocket);
 }
